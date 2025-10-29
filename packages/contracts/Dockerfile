@@ -1,5 +1,5 @@
 # Dockerfile for Smart Contracts
-FROM node:18-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ WORKDIR /app/packages/contracts
 RUN npm run build
 
 # Production image
-FROM node:18-alpine
+FROM node:25-alpine
 
 WORKDIR /app
 
