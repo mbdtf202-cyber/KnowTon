@@ -36,7 +36,7 @@ jobs:
           slither . --json slither-report.json || true
 
       - name: Upload Slither report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: slither-report
           path: packages/contracts/slither-report.json
@@ -67,7 +67,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Mythril report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: mythril-report
           path: packages/contracts/mythril-report.json
@@ -94,7 +94,7 @@ jobs:
           npm run test -- --gas-report
 
       - name: Upload gas report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: gas-report
           path: packages/contracts/gas-report.txt
