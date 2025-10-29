@@ -65,7 +65,6 @@ graph TB
         MS11[Oracle Adapter]
         MS12[Auth Service]
     end
-```    
     subgraph "Data Layer"
         PG[(PostgreSQL)]
         MG[(MongoDB)]
