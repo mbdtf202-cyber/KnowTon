@@ -1,0 +1,17 @@
+{
+  "name": "knowton-subgraph",
+  "version": "1.0.0",
+  "description": "The Graph subgraph for KnowTon platform",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ knowton-subgraph",
+    "create-local": "graph create --node http://localhost:8020/ knowton-subgraph",
+    "remove-local": "graph remove --node http://localhost:8020/ knowton-subgraph",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 knowton-subgraph"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.56.0",
+    "@graphprotocol/graph-ts": "^0.31.0"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "@knowton/sdk",
+  "version": "1.0.0",
+  "description": "KnowTon Platform JavaScript SDK",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "jest",
+    "lint": "eslint . --ext .ts",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ethers": "^6.9.0",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "tsup": "^8.0.1"
+  },
+  "keywords": [
+    "web3",
+    "nft",
+    "ip",
+    "copyright",
+    "blockchain",
+    "knowton"
+  ],
+  "author": "KnowTon Team",
+  "license": "MIT"
+}

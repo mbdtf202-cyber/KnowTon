@@ -1,0 +1,325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Creator {
+  id            String    @id @default(uuid())
+  walletAddress String    @unique
+  did           String    @unique
+  displayName   String
+  bio           String?
+  avatar        String?
+  website       String?
+  social        Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  contents      Content[]
+
+  @@index([walletAddress])
+  @@map("creators")
+}
+
+model Content {
+  id             String   @id @default(uuid())
+  creatorAddress String
+  title          String
+  description    String?
+  category       String
+  tags           String[]
+  ipfsHash       String
+  contentHash    String   @unique
+  aiFingerprint  String
+  fileType       String
+  fileSize       Int
+  fileName       String
+  status         String   @default("uploaded")
+  views          Int      @default(0)
+  likes          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  creator        Creator  @relation(fields: [creatorAddress], references: [walletAddress])
+
+  @@index([creatorAddress])
+  @@index([contentHash])
+  @@index([aiFingerprint])
+  @@index([category])
+  @@map("contents")
+}
+
+model NFT {
+  id             String   @id @default(uuid())
+  tokenId        String   @unique
+  contractAddress String
+  creatorAddress String
+  ownerAddress   String
+  contentId      String
+  metadataUri    String
+  royaltyPercent Int
+  price          String?
+  status         String   @default("minted")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tokenId])
+  @@index([creatorAddress])
+  @@index([ownerAddress])
+  @@map("nfts")
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  txHash          String   @unique
+  type            String
+  fromAddress     String
+  toAddress       String
+  tokenId         String?
+  amount          String
+  status          String   @default("pending")
+  blockNumber     Int?
+  gasUsed         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([txHash])
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@map("transactions")
+}
+
+model RoyaltyDistribution {
+  id              String   @id @default(uuid())
+  tokenId         String
+  salePrice       String
+  seller          String
+  buyer           String
+  distributions   Json
+  txHash          String   @unique
+  originalTxHash  String
+  status          String   @default("completed")
+  createdAt       DateTime @default(now())
+
+  @@index([tokenId])
+  @@index([seller])
+  @@index([buyer])
+  @@map("royalty_distributions")
+}
+
+model Order {
+  id            String    @id
+  tokenId       String
+  maker         String
+  type          String
+  price         String
+  amount        Int
+  filledAmount  Int       @default(0)
+  status        String    @default("OPEN")
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime?
+
+  @@index([tokenId])
+  @@index([maker])
+  @@index([status])
+  @@map("orders")
+}
+
+model Trade {
+  id            String   @id @default(uuid())
+  buyOrderId    String
+  sellOrderId   String
+  tokenId       String
+  buyer         String
+  seller        String
+  price         String
+  amount        Int
+  txHash        String   @unique
+  createdAt     DateTime @default(now())
+
+  @@index([tokenId])
+  @@index([buyer])
+  @@index([seller])
+  @@index([txHash])
+  @@map("trades")
+}
+
+model FractionalVault {
+  id           String   @id @default(uuid())
+  vaultId      String   @unique
+  nftContract  String
+  tokenId      String
+  curator      String
+  totalSupply  String
+  name         String
+  symbol       String
+  reservePrice String
+  status       String   @default("active")
+  txHash       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([vaultId])
+  @@index([curator])
+  @@index([nftContract, tokenId])
+  @@map("fractional_vaults")
+}
+
+model Proposal {
+  id              String   @id @default(uuid())
+  proposalId      String   @unique
+  proposer        String
+  targets         String[]
+  values          String[]
+  calldatas       String[]
+  description     String
+  descriptionHash String
+  status          String   @default("pending")
+  txHash          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  votes           Vote[]
+
+  @@index([proposalId])
+  @@index([proposer])
+  @@index([status])
+  @@map("proposals")
+}
+
+model Vote {
+  id         String   @id @default(uuid())
+  proposalId String
+  voter      String
+  support    Int
+  reason     String?
+  txHash     String
+  createdAt  DateTime @default(now())
+  proposal   Proposal @relation(fields: [proposalId], references: [proposalId])
+
+  @@index([proposalId])
+  @@index([voter])
+  @@map("votes")
+}
+
+model Bond {
+  id           String              @id @default(uuid())
+  bondId       String              @unique
+  ipnftId      String
+  totalValue   String
+  maturityDate DateTime
+  status       String              @default("ACTIVE")
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  tranches     Tranche[]
+  investments  Investment[]
+  distributions RevenueDistribution[]
+  redemptions  Redemption[]
+
+  @@index([bondId])
+  @@index([ipnftId])
+  @@map("bonds")
+}
+
+model Tranche {
+  id         String   @id @default(uuid())
+  bondId     String
+  trancheId  Int
+  name       String
+  priority   Int
+  allocation String
+  invested   String   @default("0")
+  apy        Float
+  riskLevel  String
+  bond       Bond     @relation(fields: [bondId], references: [bondId])
+
+  @@unique([bondId, trancheId])
+  @@index([bondId])
+  @@map("tranches")
+}
+
+model Investment {
+  id        String   @id @default(uuid())
+  bondId    String
+  trancheId Int
+  investor  String
+  amount    String
+  txHash    String   @unique
+  timestamp DateTime @default(now())
+  bond      Bond     @relation(fields: [bondId], references: [bondId])
+
+  @@index([bondId])
+  @@index([investor])
+  @@map("investments")
+}
+
+model RevenueDistribution {
+  id        String   @id @default(uuid())
+  bondId    String
+  amount    String
+  txHash    String   @unique
+  timestamp DateTime @default(now())
+  bond      Bond     @relation(fields: [bondId], references: [bondId])
+
+  @@index([bondId])
+  @@map("revenue_distributions")
+}
+
+model Redemption {
+  id        String   @id @default(uuid())
+  bondId    String
+  trancheId Int
+  investor  String
+  txHash    String   @unique
+  timestamp DateTime @default(now())
+  bond      Bond     @relation(fields: [bondId], references: [bondId])
+
+  @@index([bondId])
+  @@index([investor])
+  @@map("redemptions")
+}
+
+model Collateral {
+  id          String   @id @default(uuid())
+  userAddress String
+  nftContract String
+  tokenId     String
+  valuation   String
+  protocol    String
+  txHash      String   @unique
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userAddress])
+  @@index([tokenId])
+  @@map("collaterals")
+}
+
+model Loan {
+  id          String   @id @default(uuid())
+  userAddress String
+  asset       String
+  amount      String
+  txHash      String   @unique
+  status      String   @default("ACTIVE")
+  borrowedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userAddress])
+  @@index([status])
+  @@map("loans")
+}
+
+model Repayment {
+  id          String   @id @default(uuid())
+  userAddress String
+  asset       String
+  amount      String
+  txHash      String   @unique
+  repaidAt    DateTime @default(now())
+
+  @@index([userAddress])
+  @@map("repayments")
+}

@@ -1,0 +1,104 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: knowton-ingress
+  namespace: knowton-dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: api.knowton.local
+    http:
+      paths:
+      - path: /api/v1/creators
+        pathType: Prefix
+        backend:
+          service:
+            name: creator-service
+            port:
+              number: 80
+      - path: /api/v1/content
+        pathType: Prefix
+        backend:
+          service:
+            name: content-service
+            port:
+              number: 80
+      - path: /api/v1/nft
+        pathType: Prefix
+        backend:
+          service:
+            name: nft-service
+            port:
+              number: 80
+      - path: /api/v1/royalty
+        pathType: Prefix
+        backend:
+          service:
+            name: royalty-service
+            port:
+              number: 80
+      - path: /api/v1/marketplace
+        pathType: Prefix
+        backend:
+          service:
+            name: marketplace-service
+            port:
+              number: 80
+      - path: /api/v1/fractionalization
+        pathType: Prefix
+        backend:
+          service:
+            name: fractionalization-service
+            port:
+              number: 80
+      - path: /api/v1/staking
+        pathType: Prefix
+        backend:
+          service:
+            name: staking-service
+            port:
+              number: 80
+      - path: /api/v1/governance
+        pathType: Prefix
+        backend:
+          service:
+            name: governance-service
+            port:
+              number: 80
+      - path: /api/v1/bonding
+        pathType: Prefix
+        backend:
+          service:
+            name: bonding-service
+            port:
+              number: 80
+      - path: /api/v1/lending
+        pathType: Prefix
+        backend:
+          service:
+            name: lending-service
+            port:
+              number: 80
+      - path: /api/v1/analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-service
+            port:
+              number: 80
+  - host: knowton.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80

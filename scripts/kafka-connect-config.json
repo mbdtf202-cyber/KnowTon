@@ -1,0 +1,22 @@
+{
+  "name": "clickhouse-sink-connector",
+  "config": {
+    "connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+    "tasks.max": "3",
+    "topics": "nft-minted,trades,royalty-distributions,staking-events,proposals-created,votes-cast",
+    "clickhouse.server.url": "http://clickhouse:8123",
+    "clickhouse.server.database": "knowton",
+    "clickhouse.server.user": "default",
+    "clickhouse.server.password": "",
+    "clickhouse.table.name": "nft_transactions",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false",
+    "errors.tolerance": "all",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true",
+    "errors.deadletterqueue.topic.name": "dlq-failed-events",
+    "errors.deadletterqueue.topic.replication.factor": "1"
+  }
+}

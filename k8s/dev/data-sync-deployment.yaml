@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-sync-service
+  namespace: knowton-dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: data-sync-service
+  template:
+    metadata:
+      labels:
+        app: data-sync-service
+    spec:
+      containers:
+      - name: data-sync-service
+        image: ghcr.io/knowton/data-sync-service:latest
+        env:
+        - name: NODE_ENV
+          value: "development"
+        - name: KAFKA_BROKERS
+          value: "kafka-0.kafka-headless:9092,kafka-1.kafka-headless:9092,kafka-2.kafka-headless:9092"
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: connection-string
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep node"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-sync-service
+  namespace: knowton-dev
+spec:
+  selector:
+    app: data-sync-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: ClusterIP

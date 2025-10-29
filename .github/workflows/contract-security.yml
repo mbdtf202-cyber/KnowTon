@@ -1,0 +1,100 @@
+name: Smart Contract Security
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/contracts/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'packages/contracts/**'
+
+jobs:
+  slither:
+    name: Slither Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Slither
+        run: |
+          pip install slither-analyzer
+          pip install solc-select
+          solc-select install 0.8.20
+          solc-select use 0.8.20
+
+      - name: Run Slither
+        working-directory: packages/contracts
+        run: |
+          slither . --json slither-report.json || true
+
+      - name: Upload Slither report
+        uses: actions/upload-artifact@v3
+        with:
+          name: slither-report
+          path: packages/contracts/slither-report.json
+
+  mythril:
+    name: Mythril Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Mythril
+        run: |
+          pip install mythril
+          pip install solc-select
+          solc-select install 0.8.20
+          solc-select use 0.8.20
+
+      - name: Run Mythril
+        working-directory: packages/contracts
+        run: |
+          myth analyze contracts/*.sol --solv 0.8.20 -o json > mythril-report.json || true
+        continue-on-error: true
+
+      - name: Upload Mythril report
+        uses: actions/upload-artifact@v3
+        with:
+          name: mythril-report
+          path: packages/contracts/mythril-report.json
+
+  gas-report:
+    name: Gas Usage Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate gas report
+        working-directory: packages/contracts
+        run: |
+          npm run test -- --gas-report
+
+      - name: Upload gas report
+        uses: actions/upload-artifact@v3
+        with:
+          name: gas-report
+          path: packages/contracts/gas-report.txt

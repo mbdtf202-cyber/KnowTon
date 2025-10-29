@@ -1,0 +1,171 @@
+type IPNFT @entity {
+  id: ID!
+  tokenId: BigInt!
+  creator: Creator!
+  owner: Bytes!
+  contentHash: String!
+  metadataURI: String!
+  category: String!
+  royaltyPercent: BigInt!
+  verified: Boolean!
+  mintedAt: BigInt!
+  transfers: [Transfer!]! @derivedFrom(field: "nft")
+  royaltyDistributions: [RoyaltyDistribution!]! @derivedFrom(field: "nft")
+}
+
+type Creator @entity {
+  id: ID!
+  address: Bytes!
+  nfts: [IPNFT!]! @derivedFrom(field: "creator")
+  totalNFTs: BigInt!
+  totalVolume: BigInt!
+  createdAt: BigInt!
+}
+
+type Transfer @entity {
+  id: ID!
+  nft: IPNFT!
+  from: Bytes!
+  to: Bytes!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoyaltyDistribution @entity {
+  id: ID!
+  nft: IPNFT!
+  salePrice: BigInt!
+  totalDistributed: BigInt!
+  beneficiaries: [Beneficiary!]! @derivedFrom(field: "distribution")
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Beneficiary @entity {
+  id: ID!
+  distribution: RoyaltyDistribution!
+  address: Bytes!
+  amount: BigInt!
+  percentage: BigInt!
+}
+
+type Vault @entity {
+  id: ID!
+  vaultId: BigInt!
+  nftContract: Bytes!
+  tokenId: BigInt!
+  curator: Bytes!
+  totalSupply: BigInt!
+  name: String!
+  symbol: String!
+  reservePrice: BigInt!
+  status: String!
+  createdAt: BigInt!
+  holders: [VaultHolder!]! @derivedFrom(field: "vault")
+}
+
+type VaultHolder @entity {
+  id: ID!
+  vault: Vault!
+  holder: Bytes!
+  balance: BigInt!
+}
+
+type Trade @entity {
+  id: ID!
+  buyer: Bytes!
+  seller: Bytes!
+  tokenIn: Bytes!
+  tokenOut: Bytes!
+  amountIn: BigInt!
+  amountOut: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Pool @entity {
+  id: ID!
+  token0: Bytes!
+  token1: Bytes!
+  liquidity: BigInt!
+  createdAt: BigInt!
+}
+
+type Stake @entity {
+  id: ID!
+  staker: Bytes!
+  amount: BigInt!
+  lockPeriod: BigInt!
+  unlockTime: BigInt!
+  apy: BigInt!
+  active: Boolean!
+  stakedAt: BigInt!
+  rewards: [Reward!]! @derivedFrom(field: "stake")
+}
+
+type Reward @entity {
+  id: ID!
+  stake: Stake!
+  amount: BigInt!
+  claimedAt: BigInt!
+  transactionHash: Bytes!
+}
+
+type Proposal @entity {
+  id: ID!
+  proposalId: BigInt!
+  proposer: Bytes!
+  targets: [Bytes!]!
+  values: [BigInt!]!
+  description: String!
+  status: String!
+  createdAt: BigInt!
+  executedAt: BigInt
+  votes: [Vote!]! @derivedFrom(field: "proposal")
+  forVotes: BigInt!
+  againstVotes: BigInt!
+  abstainVotes: BigInt!
+}
+
+type Vote @entity {
+  id: ID!
+  proposal: Proposal!
+  voter: Bytes!
+  support: Int!
+  weight: BigInt!
+  reason: String
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Bond @entity {
+  id: ID!
+  bondId: BigInt!
+  nftContract: Bytes!
+  tokenId: BigInt!
+  totalValue: BigInt!
+  maturityDate: BigInt!
+  status: String!
+  issuedAt: BigInt!
+  investments: [Investment!]! @derivedFrom(field: "bond")
+}
+
+type Investment @entity {
+  id: ID!
+  bond: Bond!
+  investor: Bytes!
+  trancheId: Int!
+  amount: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DailyStats @entity {
+  id: ID!
+  date: Int!
+  totalVolume: BigInt!
+  totalTrades: BigInt!
+  uniqueTraders: BigInt!
+  totalNFTsMinted: BigInt!
+  totalRoyaltiesDistributed: BigInt!
+}

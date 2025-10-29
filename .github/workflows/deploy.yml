@@ -1,0 +1,99 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Images"]
+    types:
+      - completed
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging' ||
+      github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: https://staging.knowton.io
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:main -n knowton-staging
+          kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:main -n knowton-staging
+          kubectl rollout status deployment/backend -n knowton-staging
+          kubectl rollout status deployment/frontend -n knowton-staging
+
+      - name: Run smoke tests
+        run: |
+          # Wait for deployment
+          sleep 30
+          # Test health endpoints
+          curl -f https://staging.knowton.io/health || exit 1
+          curl -f https://staging.knowton.io/api/health || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://knowton.io
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:${{ github.ref_name }} -n knowton-production
+          kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${{ github.ref_name }} -n knowton-production
+          kubectl rollout status deployment/backend -n knowton-production
+          kubectl rollout status deployment/frontend -n knowton-production
+
+      - name: Run smoke tests
+        run: |
+          # Wait for deployment
+          sleep 30
+          # Test health endpoints
+          curl -f https://knowton.io/health || exit 1
+          curl -f https://knowton.io/api/health || exit 1
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Production deployment successful!"
+          # Add Slack/Discord notification here
