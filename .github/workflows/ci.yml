@@ -73,7 +73,7 @@ jobs:
           npm test
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./packages/contracts/coverage/lcov.info
           flags: contracts
@@ -126,7 +126,7 @@ jobs:
           npm test
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./packages/backend/coverage/lcov.info
           flags: backend
@@ -153,7 +153,7 @@ jobs:
           npm test -- --run
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./packages/frontend/coverage/lcov.info
           flags: frontend
