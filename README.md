@@ -66,8 +66,7 @@ graph TB
         MS12[Auth Service]
     end
 ```    
-    s
-ubgraph "Data Layer"
+    subgraph "Data Layer"
         PG[(PostgreSQL)]
         MG[(MongoDB)]
         RD[(Redis)]
@@ -1152,3 +1151,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 [![GitHub watchers](https://img.shields.io/github/watchers/mbdtf202-cyber/KnowTon?style=social)](https://github.com/mbdtf202-cyber/KnowTon/watchers)
 
 </div>
+1
