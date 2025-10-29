@@ -1,74 +1,74 @@
 # Dependencies
-node_modules
+node_modules/
 .pnp
 .pnp.js
 
 # Testing
-coverage
-*.lcov
+coverage/
+.nyc_output/
 
 # Production
-dist
-build
-out
-.next
+dist/
+build/
+*.tsbuildinfo
 
-# Misc
-.DS_Store
-*.pem
-.env*.local
+# Environment variables
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Debug
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+lerna-debug.log*
+pnpm-debug.log*
 
-# Turbo
-.turbo
+# OS
+.DS_Store
+Thumbs.db
 
-# IDEs
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea
+# IDE
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
 
-# OS
-Thumbs.db
-
-# Blockchain
-cache
-artifacts
-typechain-types
-
-# Python
-__pycache__
-*.py[cod]
-*$py.class
-.Python
-venv/
-ENV/
-.venv
-
-# Go
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-vendor/
+# Hardhat
+cache/
+artifacts/
+typechain-types/
 
 # Docker
-.dockerignore
+.docker/
 
 # Kubernetes
 *.kubeconfig
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Prisma
+packages/backend/prisma/migrations/
+
+# Turbo
+.turbo/
+
+# Misc
+.cache/
+.parcel-cache/

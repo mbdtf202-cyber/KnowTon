@@ -1,8 +1,6 @@
 import { Kafka, Producer, Consumer } from 'kafkajs';
-import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
 
-const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 export class DataSyncService {
@@ -40,7 +38,7 @@ export class DataSyncService {
     });
 
     await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ topic, message }) => {
         try {
           const data = JSON.parse(message.value?.toString() || '{}');
           await this.processMessage(topic, data);
@@ -133,11 +131,11 @@ export class DataSyncService {
     await redis.del(`analytics:creator:${data.userAddress}`);
   }
 
-  private async syncProposalCreated(data: any) {
+  private async syncProposalCreated(_data: any) {
     await redis.del('analytics:platform');
   }
 
-  private async syncVoteCast(data: any) {
+  private async syncVoteCast(_data: any) {
     await redis.del('analytics:platform');
   }
 

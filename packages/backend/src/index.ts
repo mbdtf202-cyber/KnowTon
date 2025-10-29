@@ -25,7 +25,7 @@ app.use('/api/v1/content', contentRoutes);
 app.use('/api/v1/nft', nftRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

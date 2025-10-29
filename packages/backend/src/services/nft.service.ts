@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
 const kafka = new KafkaProducer();
-const ipfs = new IPFSClient();
+// const ipfs = new IPFSClient(); // TODO: Implement IPFS integration
 
 interface MintNFTInput {
   creatorAddress: string;

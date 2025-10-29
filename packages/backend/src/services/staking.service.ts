@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // TODO: Use prisma for database operations
 
 export class StakingService {
   private provider: ethers.JsonRpcProvider;
