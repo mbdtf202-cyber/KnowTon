@@ -1,0 +1,263 @@
+---
+# Traefik RBAC Configuration
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traefik-ingress-controller
+  namespace: knowton-dev
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: traefik-ingress-controller
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+      - ingressclasses
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses/status
+    verbs:
+      - update
+  - apiGroups:
+      - traefik.containo.us
+    resources:
+      - middlewares
+      - ingressroutes
+      - traefikservices
+      - ingressroutetcps
+      - ingressrouteudps
+      - tlsoptions
+      - tlsstores
+      - serverstransports
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: traefik-ingress-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traefik-ingress-controller
+subjects:
+  - kind: ServiceAccount
+    name: traefik-ingress-controller
+    namespace: knowton-dev
+
+---
+# Traefik ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+  namespace: knowton-dev
+data:
+  traefik.yaml: |
+    # Global Configuration
+    global:
+      checkNewVersion: false
+      sendAnonymousUsage: false
+    
+    # API and Dashboard
+    api:
+      dashboard: true
+      insecure: true
+    
+    # Entry Points
+    entryPoints:
+      web:
+        address: ":80"
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+      websecure:
+        address: ":443"
+        http:
+          tls: {}
+      metrics:
+        address: ":8082"
+    
+    # Providers
+    providers:
+      kubernetesIngress:
+        ingressClass: traefik
+        namespaces:
+          - knowton-dev
+      kubernetesCRD:
+        namespaces:
+          - knowton-dev
+    
+    # Metrics
+    metrics:
+      prometheus:
+        entryPoint: metrics
+        addEntryPointsLabels: true
+        addServicesLabels: true
+    
+    # Access Logs
+    accessLog:
+      filePath: "/var/log/traefik/access.log"
+      format: json
+      fields:
+        defaultMode: keep
+        headers:
+          defaultMode: keep
+    
+    # Tracing
+    tracing:
+      serviceName: traefik
+    
+    # Health Check
+    ping:
+      entryPoint: web
+
+---
+# Traefik Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: knowton-dev
+  labels:
+    app: traefik
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      containers:
+      - name: traefik
+        image: traefik:v2.10
+        args:
+          - --configFile=/config/traefik.yaml
+        ports:
+        - name: web
+          containerPort: 80
+        - name: websecure
+          containerPort: 443
+        - name: admin
+          containerPort: 8080
+        - name: metrics
+          containerPort: 8082
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: logs
+          mountPath: /var/log/traefik
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: traefik-config
+      - name: logs
+        emptyDir: {}
+
+---
+# Traefik Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik
+  namespace: knowton-dev
+  labels:
+    app: traefik
+spec:
+  type: LoadBalancer
+  selector:
+    app: traefik
+  ports:
+  - name: web
+    port: 80
+    targetPort: 80
+  - name: websecure
+    port: 443
+    targetPort: 443
+  - name: admin
+    port: 8080
+    targetPort: 8080
+
+---
+# Traefik Dashboard Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-dashboard
+  namespace: knowton-dev
+spec:
+  type: ClusterIP
+  selector:
+    app: traefik
+  ports:
+  - name: admin
+    port: 8080
+    targetPort: 8080
+
+---
+# Traefik Metrics Service for Prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-metrics
+  namespace: knowton-dev
+  labels:
+    app: traefik
+spec:
+  type: ClusterIP
+  selector:
+    app: traefik
+  ports:
+  - name: metrics
+    port: 8082
+    targetPort: 8082

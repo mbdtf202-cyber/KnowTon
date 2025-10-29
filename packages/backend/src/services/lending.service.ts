@@ -281,3 +281,201 @@ export class LendingService {
     return '1000';
   }
 }
+
+  /**
+   * Get NFT valuation from Oracle Adapter
+   */
+  async getNFTValuation(tokenId: string): Promise<number> {
+    try {
+      // Fetch NFT metadata
+      const nft = await prisma.nFT.findUnique({
+        where: { tokenId },
+        include: { creator: true },
+      });
+
+      if (!nft) {
+        throw new Error(`NFT ${tokenId} not found`);
+      }
+
+      // Call Oracle Adapter for valuation
+      const oracleUrl = process.env.ORACLE_ADAPTER_URL || 'http://oracle-adapter:8000';
+      const response = await axios.post(`${oracleUrl}/api/v1/oracle/valuation`, {
+        token_id: parseInt(tokenId),
+        metadata: {
+          category: nft.metadata?.category || 'other',
+          creator_address: nft.creatorAddress,
+          mint_date: nft.mintedAt,
+          royalty_percent: nft.royaltyPercent,
+          views: nft.views || 0,
+          likes: nft.likes || 0,
+        },
+      });
+
+      const valuation = response.data;
+      
+      // Store valuation in database for future reference
+      await prisma.nFTValuation.create({
+        data: {
+          tokenId,
+          estimatedValue: valuation.estimated_value,
+          confidenceLower: valuation.confidence_interval[0],
+          confidenceUpper: valuation.confidence_interval[1],
+          valuationDate: new Date(),
+          source: 'oracle_adapter',
+        },
+      });
+
+      return valuation.estimated_value;
+    } catch (error) {
+      console.error('Error getting NFT valuation:', error);
+      // Fallback to last known valuation or default
+      const lastValuation = await prisma.nFTValuation.findFirst({
+        where: { tokenId },
+        orderBy: { valuationDate: 'desc' },
+      });
+      
+      return lastValuation?.estimatedValue || 0.1; // Default 0.1 ETH
+    }
+  }
+
+  /**
+   * Calculate Loan-to-Value ratio
+   */
+  calculateLTV(collateralValue: number, loanAmount: number): number {
+    if (collateralValue === 0) return 0;
+    return (loanAmount / collateralValue) * 100;
+  }
+
+  /**
+   * Get maximum borrowable amount based on NFT valuation
+   */
+  async getMaxBorrowAmount(tokenId: string): Promise<{
+    maxBorrow: number;
+    ltv: number;
+    valuation: number;
+  }> {
+    const valuation = await this.getNFTValuation(tokenId);
+    const ltv = 50; // 50% LTV for IP-NFTs
+    const maxBorrow = valuation * (ltv / 100);
+
+    return {
+      maxBorrow,
+      ltv,
+      valuation,
+    };
+  }
+
+  /**
+   * Supply NFT as collateral with valuation
+   */
+  async supplyCollateralWithValuation(input: SupplyCollateralInput) {
+    try {
+      const { userAddress, tokenId, protocol } = input;
+
+      // Get NFT valuation first
+      const valuationInfo = await this.getMaxBorrowAmount(tokenId);
+
+      // Verify ownership
+      const owner = await this.copyrightRegistry.ownerOf(tokenId);
+      if (owner.toLowerCase() !== userAddress.toLowerCase()) {
+        throw new Error('User does not own this NFT');
+      }
+
+      // Approve NFT transfer to lending adapter
+      const approveTx = await this.copyrightRegistry
+        .connect(this.wallet)
+        .approve(this.lendingAdapter.target, tokenId);
+      await approveTx.wait();
+
+      // Supply collateral
+      const supplyTx = await this.lendingAdapter
+        .connect(this.wallet)
+        .supplyCollateral(this.copyrightRegistry.target, tokenId);
+      const receipt = await supplyTx.wait();
+
+      // Record in database
+      await prisma.lendingPosition.create({
+        data: {
+          userAddress,
+          tokenId,
+          protocol,
+          collateralValue: valuationInfo.valuation.toString(),
+          status: 'active',
+          txHash: receipt.hash,
+        },
+      });
+
+      return {
+        success: true,
+        txHash: receipt.hash,
+        valuation: valuationInfo.valuation,
+        maxBorrow: valuationInfo.maxBorrow,
+        ltv: valuationInfo.ltv,
+      };
+    } catch (error) {
+      console.error('Error supplying collateral:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get health factor with valuation details
+   */
+  async getHealthFactorWithValuation(userAddress: string): Promise<{
+    healthFactor: number;
+    collateralValue: number;
+    borrowedValue: number;
+    availableToBorrow: number;
+    positions: Array<{
+      tokenId: string;
+      valuation: number;
+      ltv: number;
+    }>;
+  }> {
+    try {
+      // Get user's collateral positions
+      const collaterals = await this.lendingAdapter.getUserCollateral(userAddress);
+      const debts = await this.lendingAdapter.getUserDebt(userAddress);
+
+      let totalCollateralValue = 0;
+      const positions = [];
+
+      // Calculate total collateral value with fresh valuations
+      for (const collateral of collaterals) {
+        const tokenId = collateral.tokenId.toString();
+        const valuation = await this.getNFTValuation(tokenId);
+        totalCollateralValue += valuation;
+        
+        positions.push({
+          tokenId,
+          valuation,
+          ltv: 50, // Standard LTV for IP-NFTs
+        });
+      }
+
+      // Calculate total debt
+      let totalDebt = 0;
+      for (const debt of debts) {
+        totalDebt += parseFloat(ethers.formatEther(debt.amount));
+      }
+
+      // Calculate health factor
+      const healthFactor = totalDebt > 0 
+        ? (totalCollateralValue * 0.5) / totalDebt 
+        : Infinity;
+
+      const availableToBorrow = Math.max(0, (totalCollateralValue * 0.5) - totalDebt);
+
+      return {
+        healthFactor,
+        collateralValue: totalCollateralValue,
+        borrowedValue: totalDebt,
+        availableToBorrow,
+        positions,
+      };
+    } catch (error) {
+      console.error('Error getting health factor:', error);
+      throw error;
+    }
+  }
+}

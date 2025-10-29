@@ -1,0 +1,223 @@
+---
+# IngressRoute for API Gateway
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: knowton-api-gateway
+  namespace: knowton-dev
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    # Creator Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/creators`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Content Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/content`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # NFT Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/nft`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Royalty Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/royalty`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Marketplace Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/marketplace`) || PathPrefix(`/api/v1/orders`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Fractionalization Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/fractional`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Staking Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/staking`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Governance Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/governance`) || PathPrefix(`/api/v1/proposals`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Bonding Service Routes (gRPC)
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/bonding`)
+      kind: Rule
+      services:
+        - name: bonding-service
+          port: 50051
+          scheme: h2c
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Lending Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/lending`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Analytics Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/analytics`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Oracle Adapter Service Routes
+    - match: Host(`api.knowton.local`) && PathPrefix(`/api/v1/oracle`)
+      kind: Rule
+      services:
+        - name: oracle-adapter
+          port: 8000
+          strategy: RoundRobin
+          weight: 10
+      middlewares:
+        - name: api-chain
+
+    # Health Check Endpoint (Public)
+    - match: Host(`api.knowton.local`) && Path(`/health`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+      middlewares:
+        - name: public-chain
+
+    # Metrics Endpoint (Admin only)
+    - match: Host(`api.knowton.local`) && Path(`/metrics`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+      middlewares:
+        - name: ip-whitelist-admin
+
+---
+# IngressRoute for Frontend
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: knowton-frontend
+  namespace: knowton-dev
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`knowton.local`)
+      kind: Rule
+      services:
+        - name: frontend
+          port: 80
+          strategy: RoundRobin
+      middlewares:
+        - name: compression
+        - name: security-headers
+
+---
+# IngressRoute for Traefik Dashboard
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: knowton-dev
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`traefik.knowton.local`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService
+      middlewares:
+        - name: ip-whitelist-admin
+
+---
+# IngressRoute for WebSocket connections
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: knowton-websocket
+  namespace: knowton-dev
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`ws.knowton.local`) && PathPrefix(`/ws`)
+      kind: Rule
+      services:
+        - name: backend
+          port: 3000
+      middlewares:
+        - name: cors-headers
+        - name: rate-limit-auth

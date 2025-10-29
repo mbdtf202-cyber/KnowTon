@@ -1,5 +1,6 @@
 import { Kafka, Producer, Consumer } from 'kafkajs';
 import { Redis } from 'ioredis';
+import { CDCSyncService } from './cdc-sync.service';
 
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
@@ -7,6 +8,7 @@ export class DataSyncService {
   private kafka: Kafka;
   private producer: Producer;
   private consumer: Consumer;
+  private cdcService: CDCSyncService;
 
   constructor() {
     this.kafka = new Kafka({
@@ -16,11 +18,15 @@ export class DataSyncService {
 
     this.producer = this.kafka.producer();
     this.consumer = this.kafka.consumer({ groupId: 'data-sync-group' });
+    this.cdcService = new CDCSyncService();
   }
 
   async start() {
     await this.producer.connect();
     await this.consumer.connect();
+
+    // Start CDC service for database change tracking
+    await this.cdcService.start();
 
     await this.consumer.subscribe({
       topics: [
@@ -33,6 +39,13 @@ export class DataSyncService {
         'votes-cast',
         'bonds-issued',
         'loans-borrowed',
+        'cdc-events',
+        'cdc-User',
+        'cdc-Creator',
+        'cdc-Content',
+        'cdc-NFT',
+        'cdc-Transaction',
+        'cdc-RoyaltyPayment',
       ],
       fromBeginning: false,
     });
@@ -154,6 +167,7 @@ export class DataSyncService {
   }
 
   async stop() {
+    await this.cdcService.stop();
     await this.consumer.disconnect();
     await this.producer.disconnect();
   }

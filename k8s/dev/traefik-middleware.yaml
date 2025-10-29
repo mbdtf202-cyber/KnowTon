@@ -1,0 +1,207 @@
+---
+# Rate Limiting Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit
+  namespace: knowton-dev
+spec:
+  rateLimit:
+    average: 100
+    burst: 200
+    period: 1m
+
+---
+# Rate Limiting for Public APIs (more restrictive)
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit-public
+  namespace: knowton-dev
+spec:
+  rateLimit:
+    average: 50
+    burst: 100
+    period: 1m
+
+---
+# Rate Limiting for Authenticated APIs (less restrictive)
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit-auth
+  namespace: knowton-dev
+spec:
+  rateLimit:
+    average: 200
+    burst: 400
+    period: 1m
+
+---
+# CORS Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: cors-headers
+  namespace: knowton-dev
+spec:
+  headers:
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+    accessControlAllowOriginList:
+      - "*"
+    accessControlAllowHeaders:
+      - "*"
+    accessControlExposeHeaders:
+      - "*"
+    accessControlMaxAge: 3600
+    addVaryHeader: true
+
+---
+# Security Headers Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: knowton-dev
+spec:
+  headers:
+    frameDeny: true
+    contentTypeNosniff: true
+    browserXssFilter: true
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+    customResponseHeaders:
+      X-Content-Type-Options: "nosniff"
+      X-Frame-Options: "DENY"
+      X-XSS-Protection: "1; mode=block"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+
+---
+# Request ID Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: request-id
+  namespace: knowton-dev
+spec:
+  headers:
+    customRequestHeaders:
+      X-Request-ID: "{{ .RequestID }}"
+
+---
+# Compression Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: compression
+  namespace: knowton-dev
+spec:
+  compress:
+    excludedContentTypes:
+      - text/event-stream
+
+---
+# Retry Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: retry
+  namespace: knowton-dev
+spec:
+  retry:
+    attempts: 3
+    initialInterval: 100ms
+
+---
+# Circuit Breaker Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: circuit-breaker
+  namespace: knowton-dev
+spec:
+  circuitBreaker:
+    expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
+
+---
+# Strip Prefix Middleware for API versioning
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api-prefix
+  namespace: knowton-dev
+spec:
+  stripPrefix:
+    prefixes:
+      - /api/v1
+
+---
+# Buffering Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: buffering
+  namespace: knowton-dev
+spec:
+  buffering:
+    maxRequestBodyBytes: 10485760  # 10MB
+    memRequestBodyBytes: 2097152   # 2MB
+    maxResponseBodyBytes: 10485760 # 10MB
+    memResponseBodyBytes: 2097152  # 2MB
+
+---
+# IP Whitelist Middleware (for admin endpoints)
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: ip-whitelist-admin
+  namespace: knowton-dev
+spec:
+  ipWhiteList:
+    sourceRange:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 127.0.0.1/32
+
+---
+# Chain Middleware for API Routes
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: api-chain
+  namespace: knowton-dev
+spec:
+  chain:
+    middlewares:
+      - name: cors-headers
+      - name: security-headers
+      - name: request-id
+      - name: compression
+      - name: rate-limit-auth
+      - name: retry
+      - name: circuit-breaker
+
+---
+# Chain Middleware for Public Routes
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: public-chain
+  namespace: knowton-dev
+spec:
+  chain:
+    middlewares:
+      - name: cors-headers
+      - name: security-headers
+      - name: request-id
+      - name: compression
+      - name: rate-limit-public
+      - name: retry

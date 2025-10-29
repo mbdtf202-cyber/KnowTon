@@ -1,0 +1,214 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-connect-config
+  namespace: knowton-dev
+data:
+  connect-distributed.properties: |
+    bootstrap.servers=kafka:9092
+    group.id=knowton-connect-cluster
+    
+    key.converter=org.apache.kafka.connect.json.JsonConverter
+    value.converter=org.apache.kafka.connect.json.JsonConverter
+    key.converter.schemas.enable=false
+    value.converter.schemas.enable=false
+    
+    internal.key.converter=org.apache.kafka.connect.json.JsonConverter
+    internal.value.converter=org.apache.kafka.connect.json.JsonConverter
+    internal.key.converter.schemas.enable=false
+    internal.value.converter.schemas.enable=false
+    
+    offset.storage.topic=connect-offsets
+    offset.storage.replication.factor=1
+    offset.storage.partitions=25
+    
+    config.storage.topic=connect-configs
+    config.storage.replication.factor=1
+    
+    status.storage.topic=connect-status
+    status.storage.replication.factor=1
+    status.storage.partitions=5
+    
+    offset.flush.interval.ms=10000
+    offset.flush.timeout.ms=5000
+    
+    plugin.path=/usr/share/java,/usr/share/confluent-hub-components
+    
+    rest.port=8083
+    rest.advertised.host.name=kafka-connect
+    rest.advertised.port=8083
+    
+    producer.compression.type=snappy
+    producer.max.request.size=10485760
+    
+    consumer.max.poll.records=500
+    consumer.max.poll.interval.ms=300000
+    
+    task.shutdown.graceful.timeout.ms=10000
+    
+    errors.retry.timeout=300000
+    errors.retry.delay.max.ms=60000
+    errors.tolerance=all
+    errors.log.enable=true
+    errors.log.include.messages=true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-connect
+  namespace: knowton-dev
+  labels:
+    app: kafka-connect
+    component: data-sync
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kafka-connect
+  template:
+    metadata:
+      labels:
+        app: kafka-connect
+        component: data-sync
+    spec:
+      containers:
+      - name: kafka-connect
+        image: confluentinc/cp-kafka-connect:7.5.0
+        ports:
+        - containerPort: 8083
+          name: rest-api
+        env:
+        - name: CONNECT_BOOTSTRAP_SERVERS
+          value: "kafka:9092"
+        - name: CONNECT_REST_PORT
+          value: "8083"
+        - name: CONNECT_GROUP_ID
+          value: "knowton-connect-cluster"
+        - name: CONNECT_CONFIG_STORAGE_TOPIC
+          value: "connect-configs"
+        - name: CONNECT_OFFSET_STORAGE_TOPIC
+          value: "connect-offsets"
+        - name: CONNECT_STATUS_STORAGE_TOPIC
+          value: "connect-status"
+        - name: CONNECT_KEY_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_VALUE_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE
+          value: "false"
+        - name: CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE
+          value: "false"
+        - name: CONNECT_INTERNAL_KEY_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_INTERNAL_VALUE_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_REST_ADVERTISED_HOST_NAME
+          value: "kafka-connect"
+        - name: CONNECT_PLUGIN_PATH
+          value: "/usr/share/java,/usr/share/confluent-hub-components"
+        - name: CONNECT_LOG4J_ROOT_LOGLEVEL
+          value: "INFO"
+        - name: CONNECT_LOG4J_LOGGERS
+          value: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/kafka-connect
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /connectors
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      initContainers:
+      - name: install-connectors
+        image: confluentinc/cp-kafka-connect:7.5.0
+        command:
+        - sh
+        - -c
+        - |
+          echo "Installing Kafka Connect plugins..."
+          
+          # Install Debezium PostgreSQL connector
+          confluent-hub install --no-prompt debezium/debezium-connector-postgresql:2.4.0
+          
+          # Install Elasticsearch sink connector
+          confluent-hub install --no-prompt confluentinc/kafka-connect-elasticsearch:14.0.10
+          
+          # Install ClickHouse sink connector (if available)
+          # Note: ClickHouse connector may need to be manually added
+          
+          echo "Connector installation complete"
+        volumeMounts:
+        - name: plugins
+          mountPath: /usr/share/confluent-hub-components
+      volumes:
+      - name: config
+        configMap:
+          name: kafka-connect-config
+      - name: plugins
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-connect
+  namespace: knowton-dev
+  labels:
+    app: kafka-connect
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8083
+    targetPort: 8083
+    protocol: TCP
+    name: rest-api
+  selector:
+    app: kafka-connect
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-connect-headless
+  namespace: knowton-dev
+  labels:
+    app: kafka-connect
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 8083
+    targetPort: 8083
+    protocol: TCP
+    name: rest-api
+  selector:
+    app: kafka-connect
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kafka-connect-pdb
+  namespace: knowton-dev
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kafka-connect

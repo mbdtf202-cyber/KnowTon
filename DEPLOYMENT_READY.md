@@ -52,6 +52,7 @@
 - ✅ Ingress 配置
 - ✅ HPA 自动扩展
 - ✅ ConfigMaps 和 Secrets
+- ✅ Prometheus + Grafana 监控系统
 
 ### SDK
 - ✅ TypeScript SDK 完整实现
@@ -103,6 +104,46 @@ make k8s-deploy
 | ClickHouse | 8123 | 分析数据库 |
 | Kafka | 9092 | 消息队列 |
 | Elasticsearch | 9200 | 搜索引擎 |
+| Prometheus | 9090 | 监控指标收集 |
+| Grafana | 3000 | 监控可视化 |
+
+## 监控系统
+
+### 部署监控栈
+
+```bash
+# 部署 Prometheus 和 Grafana
+make monitoring
+
+# 或者手动部署
+./scripts/deploy-monitoring.sh
+```
+
+### 访问监控界面
+
+```bash
+# 端口转发监控服务
+make monitoring-port
+
+# 或者手动转发
+kubectl port-forward -n knowton-dev svc/prometheus-service 9090:9090
+kubectl port-forward -n knowton-dev svc/grafana-service 3000:3000
+```
+
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3000 (默认账号: admin / admin123)
+
+### 监控功能
+
+- ✅ 服务健康状态监控
+- ✅ CPU 和内存使用率
+- ✅ API 请求速率和错误率
+- ✅ 数据库连接和性能
+- ✅ Kafka 消息队列监控
+- ✅ 自定义告警规则
+- ✅ 预配置的 KnowTon 平台仪表板
+
+详细文档: [k8s/dev/MONITORING.md](./k8s/dev/MONITORING.md)
 
 ## 环境变量
 

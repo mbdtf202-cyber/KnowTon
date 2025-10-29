@@ -17,17 +17,16 @@ spec:
       - name: bonding-service
         image: ghcr.io/knowton/bonding-service:latest
         ports:
-        - containerPort: 3000
+        - name: grpc
+          containerPort: 50051
         env:
-        - name: NODE_ENV
-          value: "development"
+        - name: GRPC_PORT
+          value: "50051"
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
               name: postgres-secret
               key: connection-string
-        - name: REDIS_URL
-          value: "redis://redis-service:6379"
         - name: ARBITRUM_RPC_URL
           valueFrom:
             configMapKeyRef:
@@ -48,6 +47,10 @@ spec:
             configMapKeyRef:
               name: contract-addresses
               key: COPYRIGHT_REGISTRY_ADDRESS
+        - name: RISK_ENGINE_ENABLED
+          value: "true"
+        - name: LOG_LEVEL
+          value: "info"
         resources:
           requests:
             memory: "256Mi"
@@ -56,15 +59,13 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
+          tcpSocket:
+            port: 50051
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 3000
+          tcpSocket:
+            port: 50051
           initialDelaySeconds: 10
           periodSeconds: 5
 ---
@@ -78,8 +79,9 @@ spec:
     app: bonding-service
   ports:
   - protocol: TCP
-    port: 80
-    targetPort: 3000
+    port: 50051
+    targetPort: 50051
+    name: grpc
   type: ClusterIP
 ---
 apiVersion: autoscaling/v2

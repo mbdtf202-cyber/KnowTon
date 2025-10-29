@@ -17,6 +17,8 @@ help:
 	@echo "  make build-images     - Build Docker images"
 	@echo "  make lint             - Run linters"
 	@echo "  make format           - Format code"
+	@echo "  make monitoring       - Deploy monitoring stack (Prometheus + Grafana)"
+	@echo "  make monitoring-port  - Port-forward monitoring services"
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -87,3 +89,16 @@ init-data:
 	bash scripts/elasticsearch-init.sh
 	docker-compose exec -T mongodb mongosh -u knowton -p knowton_mongo_password --authenticationDatabase admin < scripts/mongodb-init.js
 	docker-compose exec -T clickhouse clickhouse-client --multiquery < scripts/clickhouse-init.sql
+
+monitoring:
+	@echo "📊 Deploying monitoring stack..."
+	./scripts/deploy-monitoring.sh
+
+monitoring-port:
+	@echo "📊 Port-forwarding monitoring services..."
+	@echo "Prometheus: http://localhost:9090"
+	@echo "Grafana: http://localhost:3000 (admin/admin123)"
+	@echo ""
+	@echo "Press Ctrl+C to stop port-forwarding"
+	@kubectl port-forward -n knowton-dev svc/prometheus-service 9090:9090 & \
+	kubectl port-forward -n knowton-dev svc/grafana-service 3000:3000

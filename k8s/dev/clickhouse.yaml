@@ -92,16 +92,90 @@ metadata:
   namespace: knowton-dev
 data:
   init.sql: |
-    CREATE DATABASE IF NOT EXISTS knowton;
+    -- ============================================================================
+    -- KnowTon Platform - ClickHouse Analytics Database Initialization
+    -- ============================================================================
+    -- This is a simplified version for K8s ConfigMap
+    -- For full schema, see scripts/clickhouse-init.sql
+    -- ============================================================================
+    
+    CREATE DATABASE IF NOT EXISTS knowton
+    ENGINE = Atomic
+    COMMENT 'KnowTon Web3 IP Platform Analytics Database';
+    
     USE knowton;
+    
+    -- Core transaction table
     CREATE TABLE IF NOT EXISTS nft_transactions (
-        event_date Date,
-        event_time DateTime,
+        event_date Date DEFAULT toDate(event_time),
+        event_time DateTime64(3) DEFAULT now64(),
         tx_hash String,
+        block_number UInt64,
+        block_timestamp DateTime,
         token_id UInt256,
+        contract_address String,
         from_address String,
         to_address String,
-        price Decimal(78, 18)
+        transaction_type Enum8('mint' = 1, 'transfer' = 2, 'sale' = 3, 'burn' = 4, 'list' = 5, 'delist' = 6),
+        price Decimal(78, 18) DEFAULT 0,
+        currency String DEFAULT 'ETH',
+        price_usd Decimal(78, 6),
+        gas_used UInt64,
+        category String DEFAULT '',
+        creator_address String DEFAULT '',
+        INDEX idx_token_id token_id TYPE minmax GRANULARITY 4,
+        INDEX idx_from_address from_address TYPE bloom_filter GRANULARITY 4,
+        INDEX idx_to_address to_address TYPE bloom_filter GRANULARITY 4
     ) ENGINE = MergeTree()
     PARTITION BY toYYYYMM(event_date)
-    ORDER BY (event_date, event_time, token_id);
+    ORDER BY (event_date, event_time, token_id, tx_hash)
+    TTL event_date + INTERVAL 3 YEAR DELETE;
+    
+    -- Revenue breakdown table
+    CREATE TABLE IF NOT EXISTS revenue_breakdown (
+        event_date Date DEFAULT toDate(event_time),
+        event_time DateTime64(3) DEFAULT now64(),
+        tx_hash String,
+        token_id UInt256,
+        revenue_source Enum8('primary_sale' = 1, 'secondary_sale' = 2, 'royalty' = 3, 
+                             'fractionalization' = 4, 'staking_reward' = 5, 'lending_interest' = 6, 
+                             'bond_yield' = 7, 'platform_fee' = 8),
+        recipient_address String,
+        gross_amount Decimal(78, 18),
+        net_amount Decimal(78, 18),
+        usd_value Decimal(78, 6),
+        INDEX idx_recipient recipient_address TYPE bloom_filter GRANULARITY 4
+    ) ENGINE = MergeTree()
+    PARTITION BY toYYYYMM(event_date)
+    ORDER BY (event_date, event_time, revenue_source, token_id)
+    TTL event_date + INTERVAL 5 YEAR DELETE;
+    
+    -- User behavior events
+    CREATE TABLE IF NOT EXISTS user_behavior_events (
+        event_date Date DEFAULT toDate(event_time),
+        event_time DateTime64(3) DEFAULT now64(),
+        session_id String,
+        user_address String,
+        event_type Enum16('page_view' = 1, 'nft_view' = 2, 'nft_like' = 3, 'nft_share' = 4,
+                         'search' = 5, 'purchase_complete' = 12, 'bid_placed' = 13),
+        target_id String DEFAULT '',
+        INDEX idx_user user_address TYPE bloom_filter GRANULARITY 4
+    ) ENGINE = MergeTree()
+    PARTITION BY toYYYYMM(event_date)
+    ORDER BY (event_date, event_time, user_address, session_id)
+    TTL event_date + INTERVAL 1 YEAR DELETE;
+    
+    -- Content metrics
+    CREATE TABLE IF NOT EXISTS content_metrics (
+        date Date,
+        content_id String,
+        token_id UInt256,
+        views UInt64,
+        likes UInt64,
+        revenue Decimal(78, 18)
+    ) ENGINE = SummingMergeTree()
+    PARTITION BY toYYYYMM(date)
+    ORDER BY (date, content_id);
+    
+    -- Note: For complete schema with all tables and materialized views,
+    -- run scripts/clickhouse-init.sql after deployment

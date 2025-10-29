@@ -1,0 +1,90 @@
+{
+  "index_patterns": ["knowton-*"],
+  "version": 1,
+  "priority": 100,
+  "template": {
+    "settings": {
+      "number_of_shards": 3,
+      "number_of_replicas": 1,
+      "refresh_interval": "5s",
+      "max_result_window": 10000,
+      "analysis": {
+        "char_filter": {
+          "html_strip_filter": {
+            "type": "html_strip"
+          }
+        },
+        "tokenizer": {
+          "ik_smart_tokenizer": {
+            "type": "ik_smart"
+          },
+          "ik_max_word_tokenizer": {
+            "type": "ik_max_word"
+          }
+        },
+        "filter": {
+          "english_stop": {
+            "type": "stop",
+            "stopwords": "_english_"
+          },
+          "english_stemmer": {
+            "type": "stemmer",
+            "language": "english"
+          },
+          "english_possessive_stemmer": {
+            "type": "stemmer",
+            "language": "possessive_english"
+          },
+          "chinese_stop": {
+            "type": "stop",
+            "stopwords": ["的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一", "一个", "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "没有", "看", "好", "自己", "这"]
+          },
+          "edge_ngram_filter": {
+            "type": "edge_ngram",
+            "min_gram": 2,
+            "max_gram": 20
+          }
+        },
+        "analyzer": {
+          "english_analyzer": {
+            "type": "custom",
+            "char_filter": ["html_strip_filter"],
+            "tokenizer": "standard",
+            "filter": [
+              "lowercase",
+              "english_possessive_stemmer",
+              "english_stop",
+              "english_stemmer"
+            ]
+          },
+          "chinese_analyzer": {
+            "type": "custom",
+            "char_filter": ["html_strip_filter"],
+            "tokenizer": "ik_max_word",
+            "filter": ["lowercase", "chinese_stop"]
+          },
+          "chinese_smart_analyzer": {
+            "type": "custom",
+            "tokenizer": "ik_smart",
+            "filter": ["lowercase", "chinese_stop"]
+          },
+          "autocomplete_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase", "edge_ngram_filter"]
+          },
+          "autocomplete_search_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": ["lowercase"]
+          },
+          "keyword_lowercase": {
+            "type": "custom",
+            "tokenizer": "keyword",
+            "filter": ["lowercase"]
+          }
+        }
+      }
+    }
+  }
+}
