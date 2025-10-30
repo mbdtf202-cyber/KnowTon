@@ -2,11 +2,13 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 interface IUniswapV3Router {
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
@@ -98,7 +100,7 @@ contract MarketplaceAMM is
     ) external nonReentrant returns (bytes32) {
         require(price > 0, "Invalid price");
         
-        IERC721Upgradeable nft = IERC721Upgradeable(nftContract);
+        IERC721 nft = IERC721(nftContract);
         require(nft.ownerOf(tokenId) == msg.sender, "Not owner");
         require(
             nft.isApprovedForAll(msg.sender, address(this)) || 
@@ -134,7 +136,7 @@ contract MarketplaceAMM is
         uint256 fee = (listing.price * platformFee) / 10000;
         uint256 sellerAmount = listing.price - fee;
         
-        IERC721Upgradeable(listing.nftContract).safeTransferFrom(
+        IERC721(listing.nftContract).safeTransferFrom(
             listing.seller,
             msg.sender,
             listing.tokenId
@@ -165,8 +167,8 @@ contract MarketplaceAMM is
         Listing storage listing = listings[listingId];
         require(listing.active, "Not active");
         
-        IERC20Upgradeable(tokenIn).transferFrom(msg.sender, address(this), amountInMaximum);
-        IERC20Upgradeable(tokenIn).approve(address(uniswapRouter), amountInMaximum);
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountInMaximum);
+        IERC20(tokenIn).approve(address(uniswapRouter), amountInMaximum);
         
         IUniswapV3Router.ExactInputSingleParams memory params = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
@@ -187,7 +189,7 @@ contract MarketplaceAMM is
         uint256 fee = (listing.price * platformFee) / 10000;
         uint256 sellerAmount = listing.price - fee;
         
-        IERC721Upgradeable(listing.nftContract).safeTransferFrom(
+        IERC721(listing.nftContract).safeTransferFrom(
             listing.seller,
             msg.sender,
             listing.tokenId

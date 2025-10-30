@@ -2,11 +2,13 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 interface IAavePool {
     function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
@@ -93,7 +95,7 @@ contract LendingAdapter is
     ) external nonReentrant returns (bytes32) {
         require(ltv <= 5000, "LTV too high"); // Max 50%
         
-        IERC721Upgradeable nft = IERC721Upgradeable(nftContract);
+        IERC721 nft = IERC721(nftContract);
         require(nft.ownerOf(tokenId) == msg.sender, "Not owner");
         
         nft.transferFrom(msg.sender, address(this), tokenId);
@@ -137,7 +139,7 @@ contract LendingAdapter is
         
         aavePool.borrow(asset, amount, 2, 0, address(this));
         
-        IERC20Upgradeable(asset).transfer(msg.sender, amount);
+        IERC20(asset).transfer(msg.sender, amount);
         
         uint256 healthFactor = calculateHealthFactor(collateralId);
         require(healthFactor >= MIN_HEALTH_FACTOR, "Health factor too low");
@@ -154,8 +156,8 @@ contract LendingAdapter is
         require(collateral.active, "Collateral not active");
         require(collateral.owner == msg.sender, "Not owner");
         
-        IERC20Upgradeable(asset).transferFrom(msg.sender, address(this), amount);
-        IERC20Upgradeable(asset).approve(address(aavePool), amount);
+        IERC20(asset).transferFrom(msg.sender, address(this), amount);
+        IERC20(asset).approve(address(aavePool), amount);
         
         uint256 repaidAmount = aavePool.repay(asset, amount, 2, address(this));
         
@@ -176,7 +178,7 @@ contract LendingAdapter is
         
         collateral.active = false;
         
-        IERC721Upgradeable(collateral.nftContract).transferFrom(
+        IERC721(collateral.nftContract).transferFrom(
             address(this),
             msg.sender,
             collateral.tokenId
@@ -192,8 +194,8 @@ contract LendingAdapter is
         uint256 healthFactor = calculateHealthFactor(collateralId);
         require(healthFactor < 1e18, "Health factor OK");
         
-        IERC20Upgradeable(asset).transferFrom(msg.sender, address(this), debtToCover);
-        IERC20Upgradeable(asset).approve(address(aavePool), debtToCover);
+        IERC20(asset).transferFrom(msg.sender, address(this), debtToCover);
+        IERC20(asset).approve(address(aavePool), debtToCover);
         
         uint256 repaidAmount = aavePool.repay(asset, debtToCover, 2, address(this));
         
@@ -208,7 +210,7 @@ contract LendingAdapter is
         
         if (collateral.borrowedAmount == 0) {
             collateral.active = false;
-            IERC721Upgradeable(collateral.nftContract).transferFrom(
+            IERC721(collateral.nftContract).transferFrom(
                 address(this),
                 msg.sender,
                 collateral.tokenId

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**
  * @title IPBond
@@ -264,14 +264,14 @@ contract IPBond is
         tranche.investments[msg.sender] = 0;
         tranche.totalRedeemed += investment;
         
-        uint256 returns = _calculateExpectedReturn(
+        uint256 expectedReturns = _calculateExpectedReturn(
             investment,
             tranche.apy,
             bond.createdAt,
             bond.maturityDate
         );
         
-        uint256 totalPayout = investment + returns;
+        uint256 totalPayout = investment + expectedReturns;
         
         (bool success, ) = payable(msg.sender).call{value: totalPayout}("");
         require(success, "Transfer failed");

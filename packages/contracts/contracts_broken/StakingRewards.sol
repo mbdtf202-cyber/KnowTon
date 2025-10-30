@@ -2,11 +2,12 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**
  * @title StakingRewards
@@ -18,13 +19,13 @@ contract StakingRewards is
     UUPSUpgradeable,
     ReentrancyGuardUpgradeable
 {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeERC20 for IERC20;
     
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     
-    IERC20Upgradeable public stakingToken;
-    IERC20Upgradeable public rewardToken;
+    IERC20 public stakingToken;
+    IERC20 public rewardToken;
     
     uint256 public constant BASIS_POINTS = 10000;
     uint256 public constant YEAR = 365 days;
@@ -61,8 +62,8 @@ contract StakingRewards is
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
         
-        stakingToken = IERC20Upgradeable(_stakingToken);
-        rewardToken = IERC20Upgradeable(_rewardToken);
+        stakingToken = IERC20(_stakingToken);
+        rewardToken = IERC20(_rewardToken);
         
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
@@ -244,7 +245,7 @@ contract StakingRewards is
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        IERC20Upgradeable(token).safeTransfer(msg.sender, amount);
+        IERC20(token).safeTransfer(msg.sender, amount);
     }
     
     // Required overrides

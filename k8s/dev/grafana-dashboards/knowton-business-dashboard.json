@@ -48,7 +48,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 6,
         "x": 0,
         "y": 0
       },
@@ -60,9 +60,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": ""
         },
         "textMode": "auto"
@@ -70,9 +68,9 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "sum(rate(knowton_nft_mints_total[5m]))",
+          "expr": "sum(rate(knowton_nft_minted_total[5m]) * 300)",
           "interval": "",
-          "legendFormat": "NFT Mints/sec",
+          "legendFormat": "NFTs Minted (5m rate)",
           "refId": "A"
         }
       ],
@@ -84,35 +82,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "vis": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -123,8 +93,12 @@
                 "value": null
               },
               {
+                "color": "yellow",
+                "value": 10000
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 100000
               }
             ]
           },
@@ -133,37 +107,34 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
       "id": 2,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
         },
-        "tooltip": {
-          "mode": "single"
-        }
+        "textMode": "auto"
       },
+      "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "sum(knowton_trading_volume_usd)",
+          "expr": "sum(knowton_total_revenue_usd)",
           "interval": "",
-          "legendFormat": "Trading Volume",
+          "legendFormat": "Total Revenue",
           "refId": "A"
-        },
-        {
-          "expr": "sum(knowton_royalty_revenue_usd)",
-          "interval": "",
-          "legendFormat": "Royalty Revenue",
-          "refId": "B"
         }
       ],
-      "title": "Revenue Metrics",
-      "type": "timeseries"
+      "title": "Total Revenue (USD)",
+      "type": "stat"
     },
     {
       "datasource": "Prometheus",
@@ -196,8 +167,8 @@
       "gridPos": {
         "h": 8,
         "w": 6,
-        "x": 0,
-        "y": 8
+        "x": 12,
+        "y": 0
       },
       "id": 3,
       "options": {
@@ -207,9 +178,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": ""
         },
         "textMode": "auto"
@@ -257,8 +226,8 @@
       "gridPos": {
         "h": 8,
         "w": 6,
-        "x": 6,
-        "y": 8
+        "x": 18,
+        "y": 0
       },
       "id": 4,
       "options": {
@@ -268,9 +237,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": ""
         },
         "textMode": "auto"
@@ -278,135 +245,13 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "sum(knowton_total_nfts)",
+          "expr": "sum(knowton_marketplace_transactions_total)",
           "interval": "",
-          "legendFormat": "Total NFTs",
+          "legendFormat": "Total Transactions",
           "refId": "A"
         }
       ],
-      "title": "Total NFTs Minted",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 50
-              },
-              {
-                "color": "red",
-                "value": 100
-              }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 8
-      },
-      "id": 5,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "8.0.0",
-      "targets": [
-        {
-          "expr": "sum(knowton_active_bonds_total)",
-          "interval": "",
-          "legendFormat": "Active Bonds",
-          "refId": "A"
-        }
-      ],
-      "title": "Active IP Bonds",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1000000
-              },
-              {
-                "color": "red",
-                "value": 10000000
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 8
-      },
-      "id": 6,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "8.0.0",
-      "targets": [
-        {
-          "expr": "sum(knowton_total_value_locked_usd)",
-          "interval": "",
-          "legendFormat": "TVL",
-          "refId": "A"
-        }
-      ],
-      "title": "Total Value Locked",
+      "title": "Marketplace Transactions",
       "type": "stat"
     },
     {
@@ -458,7 +303,143 @@
               }
             ]
           },
-          "unit": "none"
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(knowton_royalty_payments_total[1h]) * 3600)",
+          "interval": "",
+          "legendFormat": "Royalty Payments/hour",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(knowton_marketplace_volume_usd[1h]) * 3600)",
+          "interval": "",
+          "legendFormat": "Trading Volume/hour",
+          "refId": "B"
+        }
+      ],
+      "title": "Revenue Streams",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            }
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (content_type) (knowton_content_uploads_total)",
+          "interval": "",
+          "legendFormat": "{{content_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Content Distribution by Type",
+      "type": "piechart"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         }
       },
       "gridPos": {
@@ -480,13 +461,25 @@
       },
       "targets": [
         {
-          "expr": "sum by (category) (knowton_nfts_by_category)",
+          "expr": "sum(knowton_staking_pools_active)",
           "interval": "",
-          "legendFormat": "{{category}}",
+          "legendFormat": "Active Staking Pools",
           "refId": "A"
+        },
+        {
+          "expr": "sum(knowton_governance_proposals_active)",
+          "interval": "",
+          "legendFormat": "Active Proposals",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(knowton_bonds_issued_total)",
+          "interval": "",
+          "legendFormat": "Bonds Issued",
+          "refId": "C"
         }
       ],
-      "title": "NFTs by Category",
+      "title": "DeFi Activity",
       "type": "timeseries"
     },
     {
@@ -500,8 +493,8 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -518,7 +511,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "normal"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -538,7 +531,7 @@
               }
             ]
           },
-          "unit": "ms"
+          "unit": "short"
         }
       },
       "gridPos": {
@@ -560,30 +553,20 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(knowton_ai_processing_duration_seconds_bucket[5m])) by (le, service))",
+          "expr": "sum by (service) (rate(knowton_service_requests_total[5m]) * 300)",
           "interval": "",
-          "legendFormat": "{{service}} P95",
+          "legendFormat": "{{service}}",
           "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(knowton_ai_processing_duration_seconds_bucket[5m])) by (le, service))",
-          "interval": "",
-          "legendFormat": "{{service}} P50",
-          "refId": "B"
         }
       ],
-      "title": "AI Processing Latency",
+      "title": "Service Request Rate (5m)",
       "type": "timeseries"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [
-    "knowton",
-    "business",
-    "metrics"
-  ],
+  "tags": ["knowton", "business", "metrics"],
   "templating": {
     "list": []
   },

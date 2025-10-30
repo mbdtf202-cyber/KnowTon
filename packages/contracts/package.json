@@ -15,8 +15,8 @@
     "verify": "hardhat verify --network arbitrum"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.4.0",
-    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "@openzeppelin/contracts": "^4.9.3",
+    "@openzeppelin/contracts-upgradeable": "^4.9.3",
     "ethers": "^6.9.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

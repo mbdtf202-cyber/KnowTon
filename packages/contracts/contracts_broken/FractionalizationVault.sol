@@ -3,11 +3,12 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**
  * @title FractionalizationVault
@@ -103,7 +104,7 @@ contract FractionalizationVault is
         require(totalSupply > 0, "Invalid supply");
         
         // Transfer NFT to vault
-        IERC721Upgradeable(nftContract).safeTransferFrom(
+        IERC721(nftContract).safeTransferFrom(
             msg.sender,
             address(this),
             tokenId
@@ -190,7 +191,7 @@ contract FractionalizationVault is
         vault.state = VaultState.Redeemed;
         
         // Transfer NFT to redeemer
-        IERC721Upgradeable(vault.nftContract).safeTransferFrom(
+        IERC721(vault.nftContract).safeTransferFrom(
             address(this),
             msg.sender,
             vault.tokenId
@@ -259,7 +260,7 @@ contract FractionalizationVault is
             uint256 votingEndTime,
             uint256 yesVotes,
             uint256 noVotes,
-            bool hasVoted
+            bool voterHasVoted
         )
     {
         Vault storage vault = vaults[vaultId];

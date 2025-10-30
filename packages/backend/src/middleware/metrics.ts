@@ -206,3 +206,188 @@ export const metricsHandler = async (_req: Request, res: Response) => {
     res.status(500).end(error);
   }
 };
+// KnowTon Business Metrics
+
+// NFT minting rate
+export const knowtonNftMintsTotal = new client.Counter({
+  name: 'knowton_nft_mints_total',
+  help: 'Total number of NFTs minted on KnowTon platform',
+  labelNames: ['category', 'creator'],
+  registers: [register],
+});
+
+// Trading volume in USD
+export const knowtonTradingVolumeUsd = new client.Gauge({
+  name: 'knowton_trading_volume_usd',
+  help: 'Trading volume in USD',
+  labelNames: ['pair', 'timeframe'],
+  registers: [register],
+});
+
+// Royalty revenue in USD
+export const knowtonRoyaltyRevenueUsd = new client.Gauge({
+  name: 'knowton_royalty_revenue_usd',
+  help: 'Royalty revenue in USD',
+  labelNames: ['creator', 'nft_id'],
+  registers: [register],
+});
+
+// Active users
+export const knowtonActiveUsersTotal = new client.Gauge({
+  name: 'knowton_active_users_total',
+  help: 'Number of active users',
+  labelNames: ['timeframe'],
+  registers: [register],
+});
+
+// Total NFTs on platform
+export const knowtonTotalNfts = new client.Gauge({
+  name: 'knowton_total_nfts',
+  help: 'Total number of NFTs on KnowTon platform',
+  registers: [register],
+});
+
+// Active IP bonds
+export const knowtonActiveBondsTotal = new client.Gauge({
+  name: 'knowton_active_bonds_total',
+  help: 'Number of active IP bonds',
+  registers: [register],
+});
+
+// Total value locked
+export const knowtonTotalValueLockedUsd = new client.Gauge({
+  name: 'knowton_total_value_locked_usd',
+  help: 'Total value locked in USD',
+  registers: [register],
+});
+
+// NFTs by category
+export const knowtonNftsByCategory = new client.Gauge({
+  name: 'knowton_nfts_by_category',
+  help: 'Number of NFTs by category',
+  labelNames: ['category'],
+  registers: [register],
+});
+
+// AI processing duration
+export const knowtonAiProcessingDuration = new client.Histogram({
+  name: 'knowton_ai_processing_duration_seconds',
+  help: 'AI processing duration in seconds',
+  labelNames: ['service', 'operation'],
+  buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
+  registers: [register],
+});
+
+// Gas fees spent
+export const knowtonGasFeesTotal = new client.Counter({
+  name: 'knowton_gas_fees_total',
+  help: 'Total gas fees spent in ETH',
+  labelNames: ['operation', 'network'],
+  registers: [register],
+});
+
+// Transaction errors
+export const knowtonTransactionErrors = new client.Counter({
+  name: 'knowton_transaction_errors_total',
+  help: 'Total number of transaction errors',
+  labelNames: ['operation', 'error_type'],
+  registers: [register],
+});
+
+// Content fingerprinting operations
+export const knowtonFingerprintingTotal = new client.Counter({
+  name: 'knowton_fingerprinting_total',
+  help: 'Total number of content fingerprinting operations',
+  labelNames: ['content_type', 'status'],
+  registers: [register],
+});
+
+// IP valuation operations
+export const knowtonValuationTotal = new client.Counter({
+  name: 'knowton_valuation_total',
+  help: 'Total number of IP valuation operations',
+  labelNames: ['status'],
+  registers: [register],
+});
+
+// Recommendation requests
+export const knowtonRecommendationTotal = new client.Counter({
+  name: 'knowton_recommendation_total',
+  help: 'Total number of recommendation requests',
+  labelNames: ['user_type'],
+  registers: [register],
+});
+
+// Bond issuance operations
+export const knowtonBondIssuanceTotal = new client.Counter({
+  name: 'knowton_bond_issuance_total',
+  help: 'Total number of bond issuance operations',
+  labelNames: ['bond_type', 'status'],
+  registers: [register],
+});
+
+// Bond investment amount
+export const knowtonBondInvestmentUsd = new client.Histogram({
+  name: 'knowton_bond_investment_usd',
+  help: 'Bond investment amounts in USD',
+  labelNames: ['tranche_type'],
+  buckets: [100, 500, 1000, 5000, 10000, 50000, 100000],
+  registers: [register],
+});
+
+// Utility functions to update business metrics
+
+export const updateNftMintMetrics = (category: string, creator: string) => {
+  knowtonNftMintsTotal.labels(category, creator).inc();
+  knowtonTotalNfts.inc();
+  knowtonNftsByCategory.labels(category).inc();
+};
+
+export const updateTradingMetrics = (volumeUsd: number, pair: string) => {
+  knowtonTradingVolumeUsd.labels(pair, '24h').set(volumeUsd);
+};
+
+export const updateRoyaltyMetrics = (revenueUsd: number, creator: string, nftId: string) => {
+  knowtonRoyaltyRevenueUsd.labels(creator, nftId).set(revenueUsd);
+};
+
+export const updateActiveUsersMetrics = (count: number, timeframe: string) => {
+  knowtonActiveUsersTotal.labels(timeframe).set(count);
+};
+
+export const updateBondMetrics = (activeBonds: number, tvlUsd: number) => {
+  knowtonActiveBondsTotal.set(activeBonds);
+  knowtonTotalValueLockedUsd.set(tvlUsd);
+};
+
+export const recordAiProcessingTime = (service: string, operation: string, durationSeconds: number) => {
+  knowtonAiProcessingDuration.labels(service, operation).observe(durationSeconds);
+};
+
+export const recordGasFees = (operation: string, network: string, feeEth: number) => {
+  knowtonGasFeesTotal.labels(operation, network).inc(feeEth);
+};
+
+export const recordTransactionError = (operation: string, errorType: string) => {
+  knowtonTransactionErrors.labels(operation, errorType).inc();
+};
+
+export const recordFingerprintingOperation = (contentType: string, status: string) => {
+  knowtonFingerprintingTotal.labels(contentType, status).inc();
+};
+
+export const recordValuationOperation = (status: string) => {
+  knowtonValuationTotal.labels(status).inc();
+};
+
+export const recordRecommendationRequest = (userType: string) => {
+  knowtonRecommendationTotal.labels(userType).inc();
+};
+
+export const recordBondIssuance = (bondType: string, status: string) => {
+  knowtonBondIssuanceTotal.labels(bondType, status).inc();
+};
+
+export const recordBondInvestment = (trancheType: string, amountUsd: number) => {
+  knowtonBondInvestmentUsd.labels(trancheType).observe(amountUsd);
+};

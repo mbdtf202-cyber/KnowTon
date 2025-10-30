@@ -37,7 +37,7 @@ contract GovernanceToken is
     function nonces(address owner)
         public
         view
-        override(ERC20PermitUpgradeable, NoncesUpgradeable)
+        override
         returns (uint256)
     {
         return super.nonces(owner);

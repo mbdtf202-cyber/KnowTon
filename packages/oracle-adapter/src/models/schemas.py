@@ -61,7 +61,9 @@ class ValuationResponse(BaseModel):
     estimated_value: float = Field(..., description="Estimated value in USD")
     confidence_interval: List[float] = Field(..., description="[lower_bound, upper_bound]")
     comparable_sales: List[Dict[str, Any]] = Field(default_factory=list, description="Similar sales")
-    factors: Dict[str, float] = Field(default_factory=dict, description="Valuation factors")
+    factors: Dict[str, Any] = Field(default_factory=dict, description="Explainable valuation factors")
+    model_uncertainty: Optional[float] = Field(default=None, description="Model uncertainty score")
+    processing_time_ms: Optional[float] = Field(default=None, description="Processing time in milliseconds")
 
 
 class RecommendationRequest(BaseModel):

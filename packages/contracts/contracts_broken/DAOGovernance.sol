@@ -10,7 +10,8 @@ import "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorTimelo
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts/governance/TimelockController.sol";
+import "@openzeppelin/contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
+import "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 /**
  * @title DAOGovernance
@@ -36,9 +37,9 @@ contract DAOGovernance is
     
     function initialize(
         IVotes _token,
-        TimelockController _timelock,
-        uint256 _votingDelay,
-        uint256 _votingPeriod,
+        TimelockControllerUpgradeable _timelock,
+        uint48 _votingDelay,
+        uint32 _votingPeriod,
         uint256 _proposalThreshold,
         uint256 _quorumPercentage
     ) public initializer {
@@ -146,6 +147,15 @@ contract DAOGovernance is
         returns (address)
     {
         return super._executor();
+    }
+    
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(GovernorUpgradeable, AccessControlUpgradeable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
     
     function _authorizeUpgrade(address newImplementation)

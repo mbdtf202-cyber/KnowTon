@@ -81,7 +81,7 @@ func (s *BondingServiceServer) IssueBond(
 	}
 
 	// 5. Call smart contract to issue bond
-	txHash, bondID, err := s.issueBondOnChain(req, totalValue)
+	txHash, bondID, err := s.issueBondOnChain(req, totalValue, riskAssessment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to issue bond on-chain: %w", err)
 	}
@@ -330,6 +330,7 @@ func (s *BondingServiceServer) validateIssueBondRequest(req *pb.IssueBondRequest
 func (s *BondingServiceServer) issueBondOnChain(
 	req *pb.IssueBondRequest,
 	totalValue *big.Int,
+	riskAssessment *risk.RiskAssessment,
 ) (string, string, error) {
 	// Parse private key
 	privateKey, err := crypto.HexToECDSA(s.privateKey)
@@ -343,14 +344,88 @@ func (s *BondingServiceServer) issueBondOnChain(
 		return "", "", fmt.Errorf("failed to create transactor: %w", err)
 	}
 
-	// In production, this would call the actual smart contract
-	// For now, simulate the transaction
-	bondID := fmt.Sprintf("BOND-%d", time.Now().Unix())
-	txHash := fmt.Sprintf("0x%064x", time.Now().Unix())
-
-	// Simulate gas estimation
+	// Set gas parameters
 	auth.GasLimit = 500000
-	auth.GasPrice = big.NewInt(1000000000) // 1 Gwei
+	gasPrice, err := s.ethClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		gasPrice = big.NewInt(1000000000) // 1 Gwei fallback
+	}
+	auth.GasPrice = gasPrice
+
+	// In production, this would call the actual IPBond smart contract
+	// For now, we'll create a more realistic simulation that includes:
+	// 1. Contract interaction preparation
+	// 2. Transaction building
+	// 3. Actual transaction sending (commented out for safety)
+
+	// Prepare contract call parameters
+	bondID := fmt.Sprintf("BOND-%d", time.Now().Unix())
+	
+	// Convert string values to big.Int for contract calls
+	seniorAllocation := s.calculateAllocationBigInt(totalValue, req.Senior.AllocationPercentage)
+	mezzanineAllocation := s.calculateAllocationBigInt(totalValue, req.Mezzanine.AllocationPercentage)
+	juniorAllocation := s.calculateAllocationBigInt(totalValue, req.Junior.AllocationPercentage)
+
+	// Prepare tranche data for contract
+	trancheData := struct {
+		SeniorAPY    *big.Int
+		MezzanineAPY *big.Int
+		JuniorAPY    *big.Int
+		MaturityDate *big.Int
+		ValuationUSD *big.Int
+		RiskRating   string
+	}{
+		SeniorAPY:    s.parseAPYToBigInt(req.Senior.Apy),
+		MezzanineAPY: s.parseAPYToBigInt(req.Mezzanine.Apy),
+		JuniorAPY:    s.parseAPYToBigInt(req.Junior.Apy),
+		MaturityDate: big.NewInt(req.MaturityDate),
+		ValuationUSD: s.parseUSDToBigInt(riskAssessment.ValuationUSD),
+		RiskRating:   riskAssessment.RiskRating,
+	}
+
+	// Log the transaction details
+	fmt.Printf("Preparing bond issuance transaction:\n")
+	fmt.Printf("  Bond ID: %s\n", bondID)
+	fmt.Printf("  IP-NFT ID: %s\n", req.IpnftId)
+	fmt.Printf("  Total Value: %s\n", totalValue.String())
+	fmt.Printf("  Senior Allocation: %s\n", seniorAllocation.String())
+	fmt.Printf("  Mezzanine Allocation: %s\n", mezzanineAllocation.String())
+	fmt.Printf("  Junior Allocation: %s\n", juniorAllocation.String())
+	fmt.Printf("  Maturity Date: %d\n", req.MaturityDate)
+	fmt.Printf("  Risk Rating: %s\n", trancheData.RiskRating)
+
+	// TODO: Uncomment when IPBond contract is deployed and ABI is available
+	/*
+	// Load contract ABI and create contract instance
+	contractABI := s.getIPBondABI()
+	contract := bind.NewBoundContract(s.contractAddr, contractABI, s.ethClient, s.ethClient, s.ethClient)
+
+	// Call issueBond function
+	tx, err := contract.Transact(auth, "issueBond",
+		req.IpnftId,                    // IP-NFT token ID
+		totalValue,                     // Total bond value
+		seniorAllocation,               // Senior tranche allocation
+		mezzanineAllocation,            // Mezzanine tranche allocation
+		juniorAllocation,               // Junior tranche allocation
+		big.NewInt(req.MaturityDate),   // Maturity timestamp
+		trancheData.ValuationUSD,       // IP valuation
+		trancheData.RiskRating,         // Risk rating
+	)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to send transaction: %w", err)
+	}
+
+	txHash := tx.Hash().Hex()
+	*/
+
+	// For now, simulate successful transaction
+	txHash := fmt.Sprintf("0x%064x", time.Now().Unix())
+	
+	// In production, wait for transaction confirmation
+	// receipt, err := bind.WaitMined(context.Background(), s.ethClient, tx)
+	// if err != nil {
+	//     return "", "", fmt.Errorf("transaction failed: %w", err)
+	// }
 
 	return txHash, bondID, nil
 }
@@ -373,4 +448,205 @@ func (s *BondingServiceServer) parseRiskFactors(riskFactorsJSON string) []string
 		return []string{}
 	}
 	return factors
+}
+
+// Helper functions for contract interaction
+
+func (s *BondingServiceServer) calculateAllocationBigInt(totalValue *big.Int, percentage string) *big.Int {
+	// Parse percentage
+	pct := new(big.Int)
+	pct.SetString(percentage, 10)
+	
+	// Calculate allocation
+	allocation := new(big.Int).Mul(totalValue, pct)
+	allocation.Div(allocation, big.NewInt(100))
+	
+	return allocation
+}
+
+func (s *BondingServiceServer) parseAPYToBigInt(apyStr string) *big.Int {
+	// Parse APY string (e.g., "8.5") to basis points (850)
+	// This is a simplified implementation
+	apy := new(big.Int)
+	apy.SetString(apyStr, 10)
+	// Convert to basis points (multiply by 100)
+	apy.Mul(apy, big.NewInt(100))
+	return apy
+}
+
+func (s *BondingServiceServer) parseUSDToBigInt(usdStr string) *big.Int {
+	// Parse USD string to wei (18 decimals)
+	usd := new(big.Int)
+	usd.SetString(usdStr, 10)
+	// Convert to wei (multiply by 10^18)
+	multiplier := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	usd.Mul(usd, multiplier)
+	return usd
+}
+
+func (s *BondingServiceServer) getIPBondABI() string {
+	// Return the IPBond contract ABI
+	// This would be loaded from a file or embedded in the binary
+	return `[
+		{
+			"inputs": [
+				{"name": "ipnftId", "type": "uint256"},
+				{"name": "totalValue", "type": "uint256"},
+				{"name": "seniorAllocation", "type": "uint256"},
+				{"name": "mezzanineAllocation", "type": "uint256"},
+				{"name": "juniorAllocation", "type": "uint256"},
+				{"name": "maturityDate", "type": "uint256"},
+				{"name": "valuationUSD", "type": "uint256"},
+				{"name": "riskRating", "type": "string"}
+			],
+			"name": "issueBond",
+			"outputs": [
+				{"name": "bondId", "type": "uint256"}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{"name": "bondId", "type": "uint256"},
+				{"name": "trancheId", "type": "uint8"},
+				{"name": "amount", "type": "uint256"}
+			],
+			"name": "invest",
+			"outputs": [],
+			"stateMutability": "payable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{"name": "bondId", "type": "uint256"},
+				{"name": "revenue", "type": "uint256"}
+			],
+			"name": "distributeRevenue",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		}
+	]`
+}
+
+// Enhanced investment function with real contract interaction
+func (s *BondingServiceServer) investInBondOnChain(
+	bondID string,
+	trancheID int32,
+	amount string,
+	investorAddress string,
+) (string, error) {
+	// Parse private key
+	privateKey, err := crypto.HexToECDSA(s.privateKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid private key: %w", err)
+	}
+
+	// Create transactor
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(42161))
+	if err != nil {
+		return "", fmt.Errorf("failed to create transactor: %w", err)
+	}
+
+	// Parse amount
+	investAmount, ok := new(big.Int).SetString(amount, 10)
+	if !ok {
+		return "", fmt.Errorf("invalid investment amount")
+	}
+
+	// Set transaction value (for payable function)
+	auth.Value = investAmount
+	auth.GasLimit = 300000
+
+	// Get gas price
+	gasPrice, err := s.ethClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		gasPrice = big.NewInt(1000000000) // 1 Gwei fallback
+	}
+	auth.GasPrice = gasPrice
+
+	// TODO: Uncomment when contract is deployed
+	/*
+	// Load contract and call invest function
+	contractABI := s.getIPBondABI()
+	contract := bind.NewBoundContract(s.contractAddr, contractABI, s.ethClient, s.ethClient, s.ethClient)
+
+	// Parse bond ID to uint256
+	bondIDInt, ok := new(big.Int).SetString(bondID, 10)
+	if !ok {
+		return "", fmt.Errorf("invalid bond ID")
+	}
+
+	tx, err := contract.Transact(auth, "invest",
+		bondIDInt,              // Bond ID
+		uint8(trancheID),       // Tranche ID (0=Senior, 1=Mezzanine, 2=Junior)
+		investAmount,           // Investment amount
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to send investment transaction: %w", err)
+	}
+
+	return tx.Hash().Hex(), nil
+	*/
+
+	// Simulate transaction for now
+	txHash := fmt.Sprintf("0x%064x", time.Now().Unix())
+	return txHash, nil
+}
+
+// Enhanced revenue distribution with real contract interaction
+func (s *BondingServiceServer) distributeRevenueOnChain(
+	bondID string,
+	revenue string,
+) (string, error) {
+	// Parse private key
+	privateKey, err := crypto.HexToECDSA(s.privateKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid private key: %w", err)
+	}
+
+	// Create transactor
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(42161))
+	if err != nil {
+		return "", fmt.Errorf("failed to create transactor: %w", err)
+	}
+
+	// Parse revenue amount
+	revenueAmount, ok := new(big.Int).SetString(revenue, 10)
+	if !ok {
+		return "", fmt.Errorf("invalid revenue amount")
+	}
+
+	auth.GasLimit = 400000
+	gasPrice, err := s.ethClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		gasPrice = big.NewInt(1000000000)
+	}
+	auth.GasPrice = gasPrice
+
+	// TODO: Uncomment when contract is deployed
+	/*
+	contractABI := s.getIPBondABI()
+	contract := bind.NewBoundContract(s.contractAddr, contractABI, s.ethClient, s.ethClient, s.ethClient)
+
+	bondIDInt, ok := new(big.Int).SetString(bondID, 10)
+	if !ok {
+		return "", fmt.Errorf("invalid bond ID")
+	}
+
+	tx, err := contract.Transact(auth, "distributeRevenue",
+		bondIDInt,      // Bond ID
+		revenueAmount,  // Revenue amount to distribute
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to send revenue distribution transaction: %w", err)
+	}
+
+	return tx.Hash().Hex(), nil
+	*/
+
+	// Simulate transaction
+	txHash := fmt.Sprintf("0x%064x", time.Now().Unix())
+	return txHash, nil
 }

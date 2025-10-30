@@ -25,21 +25,33 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Down"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Up"
+                }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "yellow",
-                "value": 100
-              },
-              {
-                "color": "red",
-                "value": 1000
+                "color": "green",
+                "value": 1
               }
             ]
           },
@@ -48,36 +60,32 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 0
       },
       "id": 1,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
+        "displayMode": "list",
+        "orientation": "horizontal",
         "reduceOptions": {
           "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": ""
         },
-        "textMode": "auto"
+        "showUnfilled": true
       },
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "sum(rate(knowton_nft_mints_total[5m]))",
+          "expr": "up{job=~\"knowton-.*\"}",
           "interval": "",
-          "legendFormat": "NFT Mints/sec",
+          "legendFormat": "{{job}}",
           "refId": "A"
         }
       ],
-      "title": "NFT Minting Rate",
-      "type": "stat"
+      "title": "Service Health Status",
+      "type": "bargauge"
     },
     {
       "datasource": "Prometheus",
@@ -128,14 +136,14 @@
               }
             ]
           },
-          "unit": "currencyUSD"
+          "unit": "percent"
         }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 0
+        "x": 0,
+        "y": 8
       },
       "id": 2,
       "options": {
@@ -150,264 +158,14 @@
       },
       "targets": [
         {
-          "expr": "sum(knowton_trading_volume_usd)",
+          "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
           "interval": "",
-          "legendFormat": "Trading Volume",
+          "legendFormat": "CPU Usage - {{instance}}",
           "refId": "A"
-        },
-        {
-          "expr": "sum(knowton_royalty_revenue_usd)",
-          "interval": "",
-          "legendFormat": "Royalty Revenue",
-          "refId": "B"
         }
       ],
-      "title": "Revenue Metrics",
+      "title": "CPU Usage",
       "type": "timeseries"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1000
-              },
-              {
-                "color": "red",
-                "value": 5000
-              }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 0,
-        "y": 8
-      },
-      "id": 3,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "8.0.0",
-      "targets": [
-        {
-          "expr": "sum(knowton_active_users_total)",
-          "interval": "",
-          "legendFormat": "Active Users",
-          "refId": "A"
-        }
-      ],
-      "title": "Active Users",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 100
-              },
-              {
-                "color": "red",
-                "value": 500
-              }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 6,
-        "y": 8
-      },
-      "id": 4,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "8.0.0",
-      "targets": [
-        {
-          "expr": "sum(knowton_total_nfts)",
-          "interval": "",
-          "legendFormat": "Total NFTs",
-          "refId": "A"
-        }
-      ],
-      "title": "Total NFTs Minted",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 50
-              },
-              {
-                "color": "red",
-                "value": 100
-              }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 8
-      },
-      "id": 5,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "8.0.0",
-      "targets": [
-        {
-          "expr": "sum(knowton_active_bonds_total)",
-          "interval": "",
-          "legendFormat": "Active Bonds",
-          "refId": "A"
-        }
-      ],
-      "title": "Active IP Bonds",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1000000
-              },
-              {
-                "color": "red",
-                "value": 10000000
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 8
-      },
-      "id": 6,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "8.0.0",
-      "targets": [
-        {
-          "expr": "sum(knowton_total_value_locked_usd)",
-          "interval": "",
-          "legendFormat": "TVL",
-          "refId": "A"
-        }
-      ],
-      "title": "Total Value Locked",
-      "type": "stat"
     },
     {
       "datasource": "Prometheus",
@@ -458,16 +216,16 @@
               }
             ]
           },
-          "unit": "none"
+          "unit": "percent"
         }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 16
+        "x": 12,
+        "y": 8
       },
-      "id": 7,
+      "id": 3,
       "options": {
         "legend": {
           "calcs": [],
@@ -480,13 +238,93 @@
       },
       "targets": [
         {
-          "expr": "sum by (category) (knowton_nfts_by_category)",
+          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
           "interval": "",
-          "legendFormat": "{{category}}",
+          "legendFormat": "Memory Usage - {{instance}}",
           "refId": "A"
         }
       ],
-      "title": "NFTs by Category",
+      "title": "Memory Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(http_requests_total{job=~\"knowton-.*\"}[5m]))",
+          "interval": "",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Rate by Service",
       "type": "timeseries"
     },
     {
@@ -547,7 +385,7 @@
         "x": 12,
         "y": 16
       },
-      "id": 8,
+      "id": 5,
       "options": {
         "legend": {
           "calcs": [],
@@ -560,30 +398,198 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(knowton_ai_processing_duration_seconds_bucket[5m])) by (le, service))",
+          "expr": "histogram_quantile(0.95, sum by (service, le) (rate(http_request_duration_seconds_bucket{job=~\"knowton-.*\"}[5m]))) * 1000",
           "interval": "",
-          "legendFormat": "{{service}} P95",
+          "legendFormat": "95th percentile - {{service}}",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(knowton_ai_processing_duration_seconds_bucket[5m])) by (le, service))",
+          "expr": "histogram_quantile(0.50, sum by (service, le) (rate(http_request_duration_seconds_bucket{job=~\"knowton-.*\"}[5m]))) * 1000",
           "interval": "",
-          "legendFormat": "{{service}} P50",
+          "legendFormat": "50th percentile - {{service}}",
           "refId": "B"
         }
       ],
-      "title": "AI Processing Latency",
+      "title": "Response Time Percentiles",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(http_requests_total{job=~\"knowton-.*\", code!~\"5..\"}[5m])) / sum by (service) (rate(http_requests_total{job=~\"knowton-.*\"}[5m])) * 100",
+          "interval": "",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Service Availability (Non-5xx)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (database) (postgresql_connections_active{job=\"postgres-exporter\"})",
+          "interval": "",
+          "legendFormat": "PostgreSQL - {{database}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(redis_connected_clients{job=\"redis-exporter\"})",
+          "interval": "",
+          "legendFormat": "Redis Connections",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(mongodb_connections{job=\"mongodb-exporter\"})",
+          "interval": "",
+          "legendFormat": "MongoDB Connections",
+          "refId": "C"
+        }
+      ],
+      "title": "Database Connections",
       "type": "timeseries"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [
-    "knowton",
-    "business",
-    "metrics"
-  ],
+  "tags": ["knowton", "technical", "health"],
   "templating": {
     "list": []
   },
@@ -593,7 +599,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "KnowTon Business Metrics",
-  "uid": "knowton-business",
+  "title": "KnowTon Technical Health",
+  "uid": "knowton-technical",
   "version": 1
 }
