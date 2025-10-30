@@ -1977,7 +1977,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 
 ---
 
-**© 2024 KnowTon. All rights reserved.** | **© 2024 KnowTon. 保留所有权利。**
+**© 2025 KnowTon. All rights reserved.** | **© 2025 KnowTon. 保留所有权利。**
 
 *This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.*
 
