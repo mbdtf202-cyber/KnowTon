@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
+import { useTranslation } from 'react-i18next'
 import { useNFTDetails } from '../hooks/useNFTDetails'
 import { useNFTPurchase } from '../hooks/useNFTPurchase'
 import PriceChart from '../components/PriceChart'
@@ -8,6 +9,7 @@ import TransactionModal from '../components/TransactionModal'
 import { formatAddress, formatDate, formatFileSize } from '../utils/format'
 
 export default function NFTDetailsPage() {
+  const { t } = useTranslation()
   const { tokenId } = useParams<{ tokenId: string }>()
   const navigate = useNavigate()
   const { address, isConnected } = useAccount()
@@ -26,7 +28,7 @@ export default function NFTDetailsPage() {
     return (
       <div className="max-w-7xl mx-auto py-12">
         <div className="text-center">
-          <p className="text-red-600">无效的 Token ID</p>
+          <p className="text-red-600">{t('pages.invalidTokenId')}</p>
         </div>
       </div>
     )
@@ -46,7 +48,7 @@ export default function NFTDetailsPage() {
     return (
       <div className="max-w-7xl mx-auto py-12">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error || '未找到 NFT'}</p>
+          <p className="text-red-800">{error || t('pages.nftNotFound')}</p>
         </div>
       </div>
     )
@@ -77,14 +79,14 @@ export default function NFTDetailsPage() {
       }, 2000)
     } else {
       setTxStatus('error')
-      setTxError(result.error || '购买失败')
+      setTxError(result.error || t('pages.purchaseFailed'))
     }
   }
 
   const handleMakeOffer = async () => {
     const amount = parseFloat(offerAmount)
     if (isNaN(amount) || amount <= 0) {
-      alert('请输入有效的出价金额')
+      alert(t('pages.enterValidAmount'))
       return
     }
 
@@ -94,7 +96,7 @@ export default function NFTDetailsPage() {
       setTxHash(result.txHash)
       setShowOfferModal(false)
       setOfferAmount('')
-      alert('出价成功！')
+      alert(t('pages.offerSuccess'))
     }
   }
 
@@ -108,7 +110,7 @@ export default function NFTDetailsPage() {
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-        返回市场
+        {t('pages.backToMarket')}
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -147,21 +149,21 @@ export default function NFTDetailsPage() {
           {/* Statistics */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-1">浏览量</p>
+              <p className="text-sm text-gray-500 mb-1">{t('pages.views')}</p>
               <p className="text-2xl font-bold">{nft.statistics.views.toLocaleString()}</p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-1">持有者</p>
+              <p className="text-sm text-gray-500 mb-1">{t('pages.holders')}</p>
               <p className="text-2xl font-bold">{nft.statistics.holderCount}</p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-1">总收益</p>
+              <p className="text-sm text-gray-500 mb-1">{t('pages.totalRevenue')}</p>
               <p className="text-2xl font-bold">
                 {nft.statistics.totalRevenue.toFixed(2)} ETH
               </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-1">独立访客</p>
+              <p className="text-sm text-gray-500 mb-1">{t('pages.uniqueViewers')}</p>
               <p className="text-2xl font-bold">{nft.statistics.uniqueViewers.toLocaleString()}</p>
             </div>
           </div>
@@ -182,7 +184,7 @@ export default function NFTDetailsPage() {
                       clipRule="evenodd"
                     />
                   </svg>
-                  已验证
+                  {t('pages.verified')}
                 </span>
               )}
             </div>

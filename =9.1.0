@@ -1,7 +1,0 @@
-npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
-npm warn deprecated glob@5.0.15: Glob versions prior to v9 are no longer supported
-
-added 148 packages in 6s
-
-339 packages are looking for funding
-  run `npm fund` for details

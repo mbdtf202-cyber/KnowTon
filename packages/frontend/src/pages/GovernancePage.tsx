@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import { useGovernance } from '../hooks/useGovernance'
 import ProposalList from '../components/ProposalList'
@@ -8,6 +9,7 @@ import CreateProposalForm from '../components/CreateProposalForm'
 import TransactionModal from '../components/TransactionModal'
 
 export default function GovernancePage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { isConnected, address } = useAuth()
   const {
@@ -54,13 +56,13 @@ export default function GovernancePage() {
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">需要连接钱包</h2>
-          <p className="text-gray-600 mb-4">请先连接您的 Web3 钱包以参与平台治理</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('pages.connectWalletRequired')}</h2>
+          <p className="text-gray-600 mb-4">{t('pages.connectWalletMessage')}</p>
           <button
             onClick={() => navigate('/')}
             className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
-            返回首页
+            {t('pages.backToHome')}
           </button>
         </div>
       </div>
@@ -127,9 +129,9 @@ export default function GovernancePage() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">DAO 治理</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('governance.title')}</h1>
         <p className="text-gray-600">
-          参与平台治理，对提案进行投票，共同决定 KnowTon 的未来发展方向
+          {t('governance.subtitle')}
         </p>
       </div>
 
@@ -138,7 +140,7 @@ export default function GovernancePage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">总提案数</p>
+              <p className="text-sm text-gray-600 mb-1">{t('pages.totalProposals')}</p>
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -157,7 +159,7 @@ export default function GovernancePage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">进行中</p>
+              <p className="text-sm text-gray-600 mb-1">{t('pages.active')}</p>
               <p className="text-2xl font-bold text-green-600">{stats.active}</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -176,7 +178,7 @@ export default function GovernancePage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">已通过</p>
+              <p className="text-sm text-gray-600 mb-1">{t('pages.passed')}</p>
               <p className="text-2xl font-bold text-blue-600">{stats.succeeded}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -190,7 +192,7 @@ export default function GovernancePage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">已执行</p>
+              <p className="text-sm text-gray-600 mb-1">{t('pages.executed')}</p>
               <p className="text-2xl font-bold text-purple-600">{stats.executed}</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -211,10 +213,10 @@ export default function GovernancePage() {
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 mb-8 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-blue-100 mb-1">您的投票权重</p>
-            <p className="text-3xl font-bold">{Number(votingPower).toLocaleString()} 票</p>
+            <p className="text-blue-100 mb-1">{t('pages.yourVotingPower')}</p>
+            <p className="text-3xl font-bold">{Number(votingPower).toLocaleString()} {t('governance.votingPower')}</p>
             <p className="text-sm text-blue-100 mt-2">
-              基于您持有的 KNOW 代币和质押时长计算
+              {t('pages.votingPowerDescription')}
             </p>
           </div>
           <button
@@ -224,7 +226,7 @@ export default function GovernancePage() {
             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            创建提案
+            {t('pages.createProposal')}
           </button>
         </div>
       </div>
@@ -232,7 +234,7 @@ export default function GovernancePage() {
       {/* Create Proposal Form */}
       {showCreateForm && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">创建新提案</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">{t('pages.createNewProposal')}</h2>
           <CreateProposalForm
             onSubmit={handleCreateProposal}
             onCancel={() => setShowCreateForm(false)}
@@ -254,7 +256,7 @@ export default function GovernancePage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              全部提案
+              {t('pages.allProposals')}
               <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
                 {proposals.length}
               </span>
@@ -267,7 +269,7 @@ export default function GovernancePage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              进行中
+              {t('pages.active')}
               {stats.active > 0 && (
                 <span className="ml-2 bg-green-100 text-green-600 py-0.5 px-2 rounded-full text-xs">
                   {stats.active}
@@ -282,7 +284,7 @@ export default function GovernancePage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              待开始
+              {t('pages.pending')}
             </button>
             <button
               onClick={() => setFilterStatus('closed')}
@@ -292,7 +294,7 @@ export default function GovernancePage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              已结束
+              {t('pages.ended')}
             </button>
           </nav>
         </div>
@@ -335,9 +337,9 @@ export default function GovernancePage() {
                   d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                 />
               </svg>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">选择一个提案</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('pages.selectProposal')}</h3>
               <p className="text-gray-600">
-                从左侧列表中选择一个提案以查看详情并进行投票
+                {t('pages.selectProposalDescription')}
               </p>
             </div>
           )}
@@ -356,17 +358,17 @@ export default function GovernancePage() {
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            什么是 DAO 治理？
+            {t('pages.whatIsDao')}
           </h3>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              DAO（去中心化自治组织）治理允许社区成员通过投票共同决定平台的发展方向和重要决策。
+              {t('pages.daoGovernanceDescription')}
             </p>
-            <p>投票权重基于以下因素计算：</p>
+            <p>{t('pages.votingWeightFactors')}</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>持有的 KNOW 代币数量</li>
-              <li>代币质押时长</li>
-              <li>历史参与度和声誉</li>
+              <li>{t('pages.knownTokensHeld')}</li>
+              <li>{t('pages.stakingDuration')}</li>
+              <li>{t('pages.historicalParticipation')}</li>
             </ul>
           </div>
         </div>
@@ -381,7 +383,7 @@ export default function GovernancePage() {
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            治理流程
+            {t('pages.governanceProcess')}
           </h3>
           <div className="space-y-3 text-sm text-gray-600">
             <div className="flex items-start">
@@ -389,8 +391,8 @@ export default function GovernancePage() {
                 1
               </span>
               <div>
-                <p className="font-medium text-gray-900">创建提案</p>
-                <p className="text-xs">需要至少 10,000 投票权</p>
+                <p className="font-medium text-gray-900">{t('pages.createProposalStep')}</p>
+                <p className="text-xs">{t('pages.minVotingPower')}</p>
               </div>
             </div>
             <div className="flex items-start">
@@ -398,8 +400,8 @@ export default function GovernancePage() {
                 2
               </span>
               <div>
-                <p className="font-medium text-gray-900">社区投票</p>
-                <p className="text-xs">投票期为 7 天</p>
+                <p className="font-medium text-gray-900">{t('pages.communityVoting')}</p>
+                <p className="text-xs">{t('pages.votingPeriod')}</p>
               </div>
             </div>
             <div className="flex items-start">
@@ -407,8 +409,8 @@ export default function GovernancePage() {
                 3
               </span>
               <div>
-                <p className="font-medium text-gray-900">延迟执行</p>
-                <p className="text-xs">通过后 7 天延迟期</p>
+                <p className="font-medium text-gray-900">{t('pages.delayedExecution')}</p>
+                <p className="text-xs">{t('pages.delayPeriod')}</p>
               </div>
             </div>
             <div className="flex items-start">
@@ -416,8 +418,8 @@ export default function GovernancePage() {
                 4
               </span>
               <div>
-                <p className="font-medium text-gray-900">执行提案</p>
-                <p className="text-xs">自动或手动执行</p>
+                <p className="font-medium text-gray-900">{t('pages.executeProposal')}</p>
+                <p className="text-xs">{t('pages.autoOrManualExecution')}</p>
               </div>
             </div>
           </div>

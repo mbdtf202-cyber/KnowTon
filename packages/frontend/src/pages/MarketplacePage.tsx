@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import NFTCard from '../components/NFTCard'
 import { useMarketplace } from '../hooks/useMarketplace'
 import type { MarketplaceFilters } from '../hooks/useMarketplace'
@@ -8,6 +9,7 @@ import { CONTENT_CATEGORIES } from '../utils/constants'
 type LayoutType = 'grid' | 'list'
 
 export default function MarketplacePage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [layout, setLayout] = useState<LayoutType>('grid')
   const [currentPage, setCurrentPage] = useState(1)
@@ -44,8 +46,8 @@ export default function MarketplacePage() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-4 sm:mb-6 lg:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">探索市场</h1>
-        <p className="text-sm sm:text-base text-gray-600">发现高质量的知识产权资产</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{t('marketplace.title')}</h1>
+        <p className="text-sm sm:text-base text-gray-600">{t('marketplace.subtitle')}</p>
       </div>
 
       {/* Search Bar */}
@@ -55,14 +57,14 @@ export default function MarketplacePage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索 NFT..."
+            placeholder={t('marketplace.searchPlaceholder')}
             className="flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <button
             type="submit"
             className="btn-touch px-4 sm:px-6 py-2 bg-blue-600 text-white text-sm sm:text-base rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors"
           >
-            <span className="hidden xs:inline">搜索</span>
+            <span className="hidden xs:inline">{t('marketplace.search')}</span>
             <svg className="w-5 h-5 xs:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -81,10 +83,10 @@ export default function MarketplacePage() {
               onChange={(e) => handleFilterChange('category', e.target.value || undefined)}
               className="btn-touch px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">所有分类</option>
+              <option value="">{t('marketplace.allCategories')}</option>
               {CONTENT_CATEGORIES.map(cat => (
                 <option key={cat} value={cat}>
-                  {cat}
+                  {t(`mint.categories.${cat}`)}
                 </option>
               ))}
             </select>
@@ -95,9 +97,9 @@ export default function MarketplacePage() {
               onChange={(e) => handleFilterChange('verified', e.target.value === '' ? undefined : e.target.value === 'true')}
               className="btn-touch px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">全部状态</option>
-              <option value="true">已验证</option>
-              <option value="false">未验证</option>
+              <option value="">{t('marketplace.allStatus')}</option>
+              <option value="true">{t('marketplace.verified')}</option>
+              <option value="false">{t('marketplace.unverified')}</option>
             </select>
 
             {/* Sort By */}
@@ -106,10 +108,10 @@ export default function MarketplacePage() {
               onChange={(e) => handleFilterChange('sortBy', e.target.value)}
               className="btn-touch px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="newest">最新上架</option>
-              <option value="price_low">价格从低到高</option>
-              <option value="price_high">价格从高到低</option>
-              <option value="popular">最受欢迎</option>
+              <option value="newest">{t('marketplace.sort.newest')}</option>
+              <option value="price_low">{t('marketplace.sort.price_low')}</option>
+              <option value="price_high">{t('marketplace.sort.price_high')}</option>
+              <option value="popular">{t('marketplace.sort.popular')}</option>
             </select>
 
             {/* Clear Filters */}
@@ -117,7 +119,7 @@ export default function MarketplacePage() {
               onClick={handleClearFilters}
               className="btn-touch px-3 sm:px-4 py-2 text-sm sm:text-base text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors border border-gray-300 rounded-lg sm:border-0"
             >
-              清除筛选
+              {t('marketplace.clearFilters')}
             </button>
           </div>
 
@@ -130,8 +132,8 @@ export default function MarketplacePage() {
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
               }`}
-              title="网格布局"
-              aria-label="网格布局"
+              title={t('marketplace.gridLayout')}
+              aria-label={t('marketplace.gridLayout')}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -144,8 +146,8 @@ export default function MarketplacePage() {
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
               }`}
-              title="列表布局"
-              aria-label="列表布局"
+              title={t('marketplace.listLayout')}
+              aria-label={t('marketplace.listLayout')}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
@@ -157,7 +159,11 @@ export default function MarketplacePage() {
 
       {/* Results Info */}
       <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-gray-600">
-        显示 {pagination.totalItems} 个结果中的第 {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, pagination.totalItems)} 个
+        {t('marketplace.showingResults', {
+          start: (currentPage - 1) * itemsPerPage + 1,
+          end: Math.min(currentPage * itemsPerPage, pagination.totalItems),
+          total: pagination.totalItems
+        })}
       </div>
 
       {/* Loading State */}
@@ -179,8 +185,8 @@ export default function MarketplacePage() {
         <>
           {nfts.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-gray-500 text-lg mb-2">未找到匹配的 NFT</p>
-              <p className="text-gray-400">尝试调整筛选条件</p>
+              <p className="text-gray-500 text-lg mb-2">{t('marketplace.noResults')}</p>
+              <p className="text-gray-400">{t('marketplace.tryAdjustFilters')}</p>
             </div>
           ) : (
             <div
@@ -216,7 +222,7 @@ export default function MarketplacePage() {
                 disabled={currentPage === 1}
                 className="btn-touch px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <span className="hidden xs:inline">上一页</span>
+                <span className="hidden xs:inline">{t('marketplace.previous')}</span>
                 <span className="xs:hidden">←</span>
               </button>
 
@@ -254,7 +260,7 @@ export default function MarketplacePage() {
                 disabled={currentPage === pagination.totalPages}
                 className="btn-touch px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <span className="hidden xs:inline">下一页</span>
+                <span className="hidden xs:inline">{t('marketplace.next')}</span>
                 <span className="xs:hidden">→</span>
               </button>
             </div>

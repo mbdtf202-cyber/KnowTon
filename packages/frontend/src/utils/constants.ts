@@ -25,17 +25,17 @@ export const CONTRACT_ADDRESSES = {
 } as const
 
 // API endpoints
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 export const API_ENDPOINTS = {
-  CREATORS: '/creators',
-  CONTENT: '/content',
-  NFT: '/nft',
-  FRACTIONAL: '/fractional',
-  ROYALTY: '/royalty',
-  ORDERS: '/orders',
-  ANALYTICS: '/analytics',
-  MARKETPLACE: '/marketplace',
+  CREATORS: '/api/v1/creators',
+  CONTENT: '/api/v1/content',
+  NFT: '/api/v1/nfts',
+  FRACTIONAL: '/api/v1/fractional',
+  ROYALTY: '/api/v1/royalty',
+  ORDERS: '/api/v1/orders',
+  ANALYTICS: '/api/v1/analytics',
+  MARKETPLACE: '/api/v1/marketplace',
 } as const
 
 // IPFS configuration

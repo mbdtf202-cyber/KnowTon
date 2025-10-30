@@ -93,7 +93,7 @@ export function useStaking() {
   }, [address])
 
   // Stake tokens
-  const stake = useCallback(async (amount: string, lockPeriod: number) => {
+  const stake = useCallback(async (_amount: string, _lockPeriod: number) => {
     if (!address) {
       throw new Error('Wallet not connected')
     }
@@ -145,7 +145,7 @@ export function useStaking() {
   }, [address, stakeHistory.length, loadStakingStats, loadStakeHistory])
 
   // Unstake tokens
-  const unstake = useCallback(async (stakeId: string) => {
+  const unstake = useCallback(async (_stakeId: string) => {
     if (!address) {
       throw new Error('Wallet not connected')
     }
@@ -191,7 +191,7 @@ export function useStaking() {
   }, [address, loadStakingStats, loadStakeHistory])
 
   // Claim rewards
-  const claimRewards = useCallback(async (stakeId: string) => {
+  const claimRewards = useCallback(async (_stakeId: string) => {
     if (!address) {
       throw new Error('Wallet not connected')
     }

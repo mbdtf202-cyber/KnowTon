@@ -50,25 +50,25 @@ export default function HomePage() {
         <section className="px-4">
           <div className="max-w-6xl mx-auto bg-white rounded-3xl shadow-lg p-12">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">平台数据一览</h2>
-              <p className="text-gray-500">实时更新的平台统计数据</p>
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">{t('home.statsTitle')}</h2>
+              <p className="text-gray-500">{t('home.statsSubtitle')}</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div className="p-4">
                 <div className="text-4xl font-bold text-blue-600 mb-2">1,234</div>
-                <div className="text-gray-600 font-medium">👨‍🎨 创作者</div>
+                <div className="text-gray-600 font-medium">👨‍🎨 {t('home.creators')}</div>
               </div>
               <div className="p-4">
                 <div className="text-4xl font-bold text-blue-600 mb-2">5,678</div>
-                <div className="text-gray-600 font-medium">🎨 IP-NFTs</div>
+                <div className="text-gray-600 font-medium">🎨 {t('home.ipNfts')}</div>
               </div>
               <div className="p-4">
                 <div className="text-4xl font-bold text-blue-600 mb-2">$2.3M</div>
-                <div className="text-gray-600 font-medium">💰 交易量</div>
+                <div className="text-gray-600 font-medium">💰 {t('home.volume')}</div>
               </div>
               <div className="p-4">
                 <div className="text-4xl font-bold text-blue-600 mb-2">98%</div>
-                <div className="text-gray-600 font-medium">😊 满意度</div>
+                <div className="text-gray-600 font-medium">😊 {t('home.satisfaction')}</div>
               </div>
             </div>
           </div>
@@ -78,9 +78,9 @@ export default function HomePage() {
         <section className="px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">核心功能</h2>
+              <h2 className="text-4xl font-bold text-gray-800 mb-4">{t('home.featuresTitle')}</h2>
               <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-                探索 KnowTon 平台的强大功能
+                {t('home.featuresSubtitle')}
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -116,10 +116,10 @@ export default function HomePage() {
               >
                 <div className="text-5xl mb-4">🔒</div>
                 <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors">
-                  隐私保护
+                  {t('home.privacyProtection')}
                 </h3>
                 <p className="text-gray-600 leading-relaxed text-sm">
-                  零知识证明技术，在保护隐私的同时验证所有权
+                  {t('home.privacyDescription')}
                 </p>
               </Link>
 
@@ -129,10 +129,10 @@ export default function HomePage() {
               >
                 <div className="text-5xl mb-4">🏛️</div>
                 <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors">
-                  DAO 治理
+                  {t('home.daoGovernance')}
                 </h3>
                 <p className="text-gray-600 leading-relaxed text-sm">
-                  社区驱动的平台治理，参与决策获得奖励
+                  {t('home.daoDescription')}
                 </p>
               </Link>
 
@@ -142,10 +142,10 @@ export default function HomePage() {
               >
                 <div className="text-5xl mb-4">📊</div>
                 <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors">
-                  数据分析
+                  {t('home.dataAnalytics')}
                 </h3>
                 <p className="text-gray-600 leading-relaxed text-sm">
-                  实时追踪您的 IP 资产表现，优化投资策略
+                  {t('home.analyticsDescription')}
                 </p>
               </Link>
 
@@ -155,10 +155,10 @@ export default function HomePage() {
               >
                 <div className="text-5xl mb-4">💱</div>
                 <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors">
-                  AMM 交易
+                  {t('home.ammTrading')}
                 </h3>
                 <p className="text-gray-600 leading-relaxed text-sm">
-                  自动化做市商，24/7 无间断交易您的 IP 资产
+                  {t('home.tradingDescription')}
                 </p>
               </Link>
             </div>
@@ -168,22 +168,22 @@ export default function HomePage() {
         {/* CTA Section */}
         <section className="px-4">
           <div className="max-w-4xl mx-auto text-center bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl shadow-xl p-16">
-            <h2 className="text-4xl font-bold mb-6 text-white">准备好开始了吗？</h2>
+            <h2 className="text-4xl font-bold mb-6 text-white">{t('home.ctaTitle')}</h2>
             <p className="text-xl mb-10 text-slate-300 leading-relaxed max-w-2xl mx-auto">
-              加入 KnowTon 社区，将您的创意转化为有价值的数字资产
+              {t('home.ctaDescription')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to={isConnected ? "/upload" : "/register"}
                 className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
               >
-                {isConnected ? "🎨 立即创作" : "✨ 免费注册"}
+                {isConnected ? `🎨 ${t('home.startCreating')}` : `✨ ${t('home.freeRegister')}`}
               </Link>
               <Link
                 to="/marketplace"
                 className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-200"
               >
-                🔍 浏览作品
+                🔍 {t('home.browseWorks')}
               </Link>
             </div>
           </div>

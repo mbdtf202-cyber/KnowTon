@@ -13,6 +13,8 @@ import StakingPage from './pages/StakingPage'
 import GovernancePage from './pages/GovernancePage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ResponsiveTestPage from './pages/ResponsiveTestPage'
+import TestPage from './pages/TestPage'
+import SystemTestPage from './pages/SystemTestPage'
 
 function App() {
   return (
@@ -33,6 +35,8 @@ function App() {
           <Route path="/profile/:address" element={<ProfilePage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/responsive-test" element={<ResponsiveTestPage />} />
+          <Route path="/test" element={<TestPage />} />
+          <Route path="/system-test" element={<SystemTestPage />} />
         </Routes>
       </Layout>
     </Router>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import { useContentUpload } from '../hooks/useContentUpload'
 import { useNFTMint } from '../hooks/useNFTMint'
@@ -9,6 +10,7 @@ import MintForm from '../components/MintForm'
 import TransactionModal from '../components/TransactionModal'
 
 export default function MintPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { isConnected } = useAuth()
   const { uploadState, uploadFile, reset: resetUpload } = useContentUpload()
@@ -25,15 +27,15 @@ export default function MintPage() {
           <svg className="h-12 w-12 text-yellow-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">需要连接钱包</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('pages.connectWalletRequired')}</h2>
           <p className="text-gray-600 mb-4">
-            请先连接您的 Web3 钱包以铸造 NFT
+            {t('pages.connectWalletMessage')}
           </p>
           <button
             onClick={() => navigate('/')}
             className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
-            返回首页
+            {t('pages.backToHome')}
           </button>
         </div>
       </div>
@@ -80,9 +82,9 @@ export default function MintPage() {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">铸造 IP-NFT</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('mint.title')}</h1>
         <p className="text-gray-600">
-          将您的知识产权作品铸造为 NFT，实现链上所有权和版税收益
+          {t('mint.subtitle')}
         </p>
       </div>
 
@@ -101,7 +103,7 @@ export default function MintPage() {
                 <span className="text-sm font-semibold">1</span>
               )}
             </div>
-            <span className="ml-2 font-medium">上传内容</span>
+            <span className="ml-2 font-medium">{t('pages.uploadContent')}</span>
           </div>
           
           <div className="w-16 h-0.5 bg-gray-300"></div>
@@ -112,7 +114,7 @@ export default function MintPage() {
             }`}>
               <span className="text-sm font-semibold">2</span>
             </div>
-            <span className="ml-2 font-medium">填写信息</span>
+            <span className="ml-2 font-medium">{t('pages.fillInfo')}</span>
           </div>
         </div>
       </div>
@@ -145,13 +147,13 @@ export default function MintPage() {
                 {uploadState.status === 'complete' && (
                   <div className="text-center">
                     <p className="text-green-600 font-medium mb-4">
-                      ✓ 文件上传成功！
+                      {t('pages.fileUploadSuccess')}
                     </p>
                     <button
                       onClick={() => setStep('form')}
                       className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                     >
-                      继续填写信息
+                      {t('pages.continueToInfo')}
                     </button>
                   </div>
                 )}
@@ -164,14 +166,14 @@ export default function MintPage() {
                   <svg className="h-12 w-12 text-red-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">上传失败</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('pages.uploadFailed')}</h3>
                   <p className="text-gray-600">{uploadState.error}</p>
                 </div>
                 <button
                   onClick={handleStartOver}
                   className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
-                  重新上传
+                  {t('pages.retryUpload')}
                 </button>
               </div>
             )}
@@ -181,12 +183,12 @@ export default function MintPage() {
         {step === 'form' && uploadState.contentHash && (
           <div>
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">NFT 信息</h2>
+              <h2 className="text-xl font-semibold text-gray-900">{t('pages.nftInfo')}</h2>
               <button
                 onClick={handleStartOver}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
-                ← 重新上传
+                {t('pages.reupload')}
               </button>
             </div>
             
@@ -207,9 +209,9 @@ export default function MintPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-1">版权保护</h3>
+              <h3 className="font-semibold text-gray-900 mb-1">{t('pages.copyrightProtection')}</h3>
               <p className="text-sm text-gray-600">
-                AI 技术自动生成内容指纹，保护您的知识产权
+                {t('pages.copyrightDescription')}
               </p>
             </div>
           </div>
@@ -221,9 +223,9 @@ export default function MintPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-1">自动版税</h3>
+              <h3 className="font-semibold text-gray-900 mb-1">{t('pages.autoRoyalty')}</h3>
               <p className="text-sm text-gray-600">
-                每次二次销售自动获得版税收益
+                {t('pages.royaltyDescription')}
               </p>
             </div>
           </div>
@@ -235,9 +237,9 @@ export default function MintPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-1">去中心化存储</h3>
+              <h3 className="font-semibold text-gray-900 mb-1">{t('pages.decentralizedStorage')}</h3>
               <p className="text-sm text-gray-600">
-                内容永久存储在 IPFS，确保不会丢失
+                {t('pages.storageDescription')}
               </p>
             </div>
           </div>

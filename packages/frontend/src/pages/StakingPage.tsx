@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import { useStaking } from '../hooks/useStaking'
 import StakingForm from '../components/StakingForm'
@@ -8,6 +9,7 @@ import StakingHistory from '../components/StakingHistory'
 import TransactionModal from '../components/TransactionModal'
 
 export default function StakingPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { isConnected } = useAuth()
   const {
@@ -40,15 +42,15 @@ export default function StakingPage() {
           <svg className="h-12 w-12 text-yellow-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">需要连接钱包</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('pages.connectWalletRequired')}</h2>
           <p className="text-gray-600 mb-4">
-            请先连接您的 Web3 钱包以使用质押功能
+            {t('pages.connectWalletMessage')}
           </p>
           <button
             onClick={() => navigate('/')}
             className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
-            返回首页
+            {t('pages.backToHome')}
           </button>
         </div>
       </div>
@@ -94,9 +96,9 @@ export default function StakingPage() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">代币质押</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('staking.title')}</h1>
         <p className="text-gray-600">
-          质押 KNOW 代币以获得奖励，支持平台治理并享受被动收入
+          {t('staking.subtitle')}
         </p>
       </div>
 
@@ -124,7 +126,7 @@ export default function StakingPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              质押代币
+              {t('staking.stake')}
             </button>
             <button
               onClick={() => setActiveTab('history')}
@@ -134,7 +136,7 @@ export default function StakingPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              质押历史
+              {t('staking.stakingHistory')}
               {stakeHistory.length > 0 && (
                 <span className="ml-2 bg-blue-100 text-blue-600 py-0.5 px-2 rounded-full text-xs">
                   {stakeHistory.length}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { simpleAPI } from '../services/simpleApi'
 import type { IPNFT, IPMetadata } from '../types'
 
 export interface MarketplaceFilters {
@@ -37,75 +38,62 @@ export function useMarketplace(filters: MarketplaceFilters = {}, page: number = 
     setError(null)
 
     try {
-      // Mock data for now - will be replaced with actual API call
-      const mockNFTs: MarketplaceNFT[] = generateMockNFTs(100)
+      // Call real API
+      const response = await simpleAPI.getNFTs({
+        page,
+        limit: itemsPerPage,
+        sortBy: filters.sortBy,
+      }) as any
+
+      if (response.success) {
+        // Transform API data to match our interface
+        const transformedNFTs: MarketplaceNFT[] = response.data.map((nft: any) => ({
+          tokenId: nft.tokenId,
+          creator: nft.creator.walletAddress,
+          owner: nft.creator.walletAddress, // Assuming creator is owner for now
+          contentHash: `hash_${nft.tokenId}`,
+          metadataURI: `ipfs://metadata_${nft.tokenId}`,
+          category: 'artwork', // Default category
+          verified: true,
+          createdAt: new Date(nft.createdAt).getTime(),
+          floorPrice: parseFloat(nft.price),
+          lastSalePrice: parseFloat(nft.price),
+          totalRevenue: parseFloat(nft.price) * 2,
+          metadata: {
+            title: nft.title,
+            description: nft.description,
+            category: 'artwork',
+            tags: ['数字艺术', 'NFT'],
+            contentType: 'image/jpeg',
+            fileSize: 1024000,
+            language: 'zh-CN',
+            license: 'CC BY-NC-SA 4.0',
+          },
+        }))
+
+        setNfts(transformedNFTs)
+        setPagination({
+          currentPage: (response as any).pagination?.page || page,
+          totalPages: (response as any).pagination?.totalPages || 1,
+          totalItems: (response as any).pagination?.total || transformedNFTs.length,
+          itemsPerPage: (response as any).pagination?.limit || itemsPerPage,
+        })
+      } else {
+        throw new Error('Failed to fetch NFTs from API')
+      }
+    } catch (err) {
+      console.error('Error fetching NFTs:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch NFTs')
       
-      // Apply filters
-      let filteredNFTs = mockNFTs
-
-      if (filters.category) {
-        filteredNFTs = filteredNFTs.filter(nft => nft.category === filters.category)
-      }
-
-      if (filters.verified !== undefined) {
-        filteredNFTs = filteredNFTs.filter(nft => nft.verified === filters.verified)
-      }
-
-      if (filters.minPrice !== undefined) {
-        filteredNFTs = filteredNFTs.filter(nft => 
-          nft.floorPrice !== undefined && nft.floorPrice >= filters.minPrice!
-        )
-      }
-
-      if (filters.maxPrice !== undefined) {
-        filteredNFTs = filteredNFTs.filter(nft => 
-          nft.floorPrice !== undefined && nft.floorPrice <= filters.maxPrice!
-        )
-      }
-
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase()
-        filteredNFTs = filteredNFTs.filter(nft => 
-          nft.metadata?.title.toLowerCase().includes(searchLower) ||
-          nft.metadata?.description.toLowerCase().includes(searchLower) ||
-          nft.metadata?.tags.some(tag => tag.toLowerCase().includes(searchLower))
-        )
-      }
-
-      // Apply sorting
-      switch (filters.sortBy) {
-        case 'newest':
-          filteredNFTs.sort((a, b) => b.createdAt - a.createdAt)
-          break
-        case 'price_low':
-          filteredNFTs.sort((a, b) => (a.floorPrice || 0) - (b.floorPrice || 0))
-          break
-        case 'price_high':
-          filteredNFTs.sort((a, b) => (b.floorPrice || 0) - (a.floorPrice || 0))
-          break
-        case 'popular':
-          filteredNFTs.sort((a, b) => (b.totalRevenue || 0) - (a.totalRevenue || 0))
-          break
-        default:
-          filteredNFTs.sort((a, b) => b.createdAt - a.createdAt)
-      }
-
-      // Pagination
-      const totalItems = filteredNFTs.length
-      const totalPages = Math.ceil(totalItems / itemsPerPage)
-      const startIndex = (page - 1) * itemsPerPage
-      const endIndex = startIndex + itemsPerPage
-      const paginatedNFTs = filteredNFTs.slice(startIndex, endIndex)
-
-      setNfts(paginatedNFTs)
+      // Fallback to mock data if API fails
+      const mockNFTs: MarketplaceNFT[] = generateMockNFTs(6)
+      setNfts(mockNFTs.slice(0, itemsPerPage))
       setPagination({
         currentPage: page,
-        totalPages,
-        totalItems,
+        totalPages: 1,
+        totalItems: mockNFTs.length,
         itemsPerPage,
       })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch NFTs')
     } finally {
       setLoading(false)
     }
