@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - 使用不同端口避免冲突
+  postgres:
+    image: postgres:16-alpine
+    container_name: knowton-postgres-dev
+    environment:
+      POSTGRES_USER: knowton_user
+      POSTGRES_PASSWORD: knowton_password
+      POSTGRES_DB: knowton
+    ports:
+      - "5433:5432"  # 使用 5433 避免与本地 PostgreSQL 冲突
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowton_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - 使用不同端口
+  redis:
+    image: redis:7-alpine
+    container_name: knowton-redis-dev
+    command: redis-server --requirepass knowton_redis_password
+    ports:
+      - "6380:6379"  # 使用 6380 避免冲突
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "knowton_redis_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB - 使用不同端口
+  mongodb:
+    image: mongo:7
+    container_name: knowton-mongodb-dev
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: knowton_admin
+      MONGO_INITDB_ROOT_PASSWORD: knowton_mongo_password
+      MONGO_INITDB_DATABASE: knowton
+    ports:
+      - "27018:27017"  # 使用 27018 避免冲突
+    volumes:
+      - mongodb_dev_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # IPFS
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: knowton-ipfs-dev
+    environment:
+      - IPFS_PROFILE=server
+    ports:
+      - "4001:4001"
+      - "5001:5001"
+      - "8090:8080"  # Gateway 使用 8090
+    volumes:
+      - ipfs_dev_data:/data/ipfs
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  mongodb_dev_data:
+  ipfs_dev_data:
+
+networks:
+  default:
+    name: knowton-dev-network

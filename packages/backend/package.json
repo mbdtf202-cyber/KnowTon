@@ -11,7 +11,9 @@
     "test": "jest",
     "lint": "eslint . --ext .ts",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "cache:warm": "tsx src/scripts/warm-cache.ts",
+    "cache:benchmark": "tsx src/scripts/benchmark-cache.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",

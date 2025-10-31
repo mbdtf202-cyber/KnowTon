@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - 核心数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: knowton-postgres
+    environment:
+      POSTGRES_USER: knowton
+      POSTGRES_PASSWORD: knowton_dev_password
+      POSTGRES_DB: knowton
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowton"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis - 缓存和会话
+  redis:
+    image: redis:7-alpine
+    container_name: knowton-redis
+    command: redis-server --requirepass knowton_redis_password
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

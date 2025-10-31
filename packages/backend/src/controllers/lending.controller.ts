@@ -6,9 +6,9 @@ const lendingService = new LendingService();
 export class LendingController {
   async supplyCollateral(req: Request, res: Response): Promise<void> {
     try {
-      const { userAddress, tokenId, protocol } = req.body;
+      const { userAddress, tokenId } = req.body;
 
-      if (!userAddress || !tokenId || !protocol) {
+      if (!userAddress || !tokenId) {
         res.status(400).json({ error: 'Missing required fields' });
         return;
       }
@@ -16,7 +16,6 @@ export class LendingController {
       const result = await lendingService.supplyCollateral({
         userAddress,
         tokenId,
-        protocol,
       });
 
       res.json(result);
@@ -28,9 +27,9 @@ export class LendingController {
 
   async borrow(req: Request, res: Response): Promise<void> {
     try {
-      const { userAddress, amount, asset } = req.body;
+      const { userAddress, amount, asset, collateralTokenId } = req.body;
 
-      if (!userAddress || !amount || !asset) {
+      if (!userAddress || !amount || !asset || !collateralTokenId) {
         res.status(400).json({ error: 'Missing required fields' });
         return;
       }
@@ -39,6 +38,7 @@ export class LendingController {
         userAddress,
         amount,
         asset,
+        collateralTokenId,
       });
 
       res.json(result);
@@ -79,7 +79,10 @@ export class LendingController {
         return;
       }
 
-      const result = await lendingService.withdrawCollateral(userAddress, tokenId);
+      const result = await lendingService.withdrawCollateral({
+        userAddress,
+        tokenId,
+      });
       res.json(result);
     } catch (error: any) {
       console.error('Error in withdrawCollateral:', error);
@@ -90,7 +93,7 @@ export class LendingController {
   async getHealthFactor(req: Request, res: Response): Promise<void> {
     try {
       const { userAddress } = req.params;
-      const result = await lendingService.getHealthFactor(userAddress);
+      const result = await lendingService.getHealthFactorWithValuation(userAddress);
       res.json(result);
     } catch (error: any) {
       console.error('Error in getHealthFactor:', error);
@@ -101,10 +104,61 @@ export class LendingController {
   async getUserPosition(req: Request, res: Response): Promise<void> {
     try {
       const { userAddress } = req.params;
-      const result = await lendingService.getUserPosition(userAddress);
+      const result = await lendingService.getUserPositions(userAddress);
       res.json(result);
     } catch (error: any) {
       console.error('Error in getUserPosition:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getNFTValuation(req: Request, res: Response): Promise<void> {
+    try {
+      const { tokenId } = req.params;
+      
+      if (!tokenId) {
+        res.status(400).json({ error: 'Token ID is required' });
+        return;
+      }
+
+      const valuation = await lendingService.getNFTValuation(tokenId);
+      res.json({ tokenId, valuation });
+    } catch (error: any) {
+      console.error('Error in getNFTValuation:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getMaxBorrowAmount(req: Request, res: Response): Promise<void> {
+    try {
+      const { tokenId } = req.params;
+      
+      if (!tokenId) {
+        res.status(400).json({ error: 'Token ID is required' });
+        return;
+      }
+
+      const result = await lendingService.getMaxBorrowAmount(tokenId);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error in getMaxBorrowAmount:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getHealthFactorWithValuation(req: Request, res: Response): Promise<void> {
+    try {
+      const { userAddress } = req.params;
+      
+      if (!userAddress) {
+        res.status(400).json({ error: 'User address is required' });
+        return;
+      }
+
+      const result = await lendingService.getHealthFactorWithValuation(userAddress);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error in getHealthFactorWithValuation:', error);
       res.status(500).json({ error: error.message });
     }
   }

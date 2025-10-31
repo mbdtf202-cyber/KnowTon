@@ -1,0 +1,31 @@
+# Echidna Configuration for KnowTon Smart Contracts
+# Property-based fuzzing configuration
+
+# Test execution settings
+testLimit: 10000          # Number of test sequences to run
+seqLen: 100               # Length of each test sequence
+shrinkLimit: 5000         # Number of shrinking attempts
+timeout: 300              # Timeout in seconds
+
+# Contract deployment
+deployer: "0x30000"       # Address to deploy contracts from
+sender: ["0x10000", "0x20000", "0x30000"]  # Addresses to send transactions
+
+# Coverage settings
+coverage: true            # Enable coverage tracking
+corpusDir: "corpus"       # Directory to store corpus
+
+# Output settings
+format: text              # Output format (text, json, none)
+quiet: false              # Suppress output
+
+# Optimization settings
+cryticArgs: ["--solc-disable-warnings"]
+
+# Gas settings
+estimateGas: true         # Estimate gas usage
+maxGasPerBlock: 12500000  # Maximum gas per block
+
+# Fuzzing strategy
+mutConsts: true           # Mutate constants
+testDestruct: true        # Test selfdestruct

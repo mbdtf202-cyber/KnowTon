@@ -206,13 +206,13 @@ export default function NFTDetailsPage() {
           {/* Price and Actions */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
             <div className="mb-4">
-              <p className="text-sm text-gray-500 mb-1">当前价格</p>
+              <p className="text-sm text-gray-500 mb-1">{t('pages.currentPrice')}</p>
               <p className="text-4xl font-bold">
-                {nft.floorPrice ? `${nft.floorPrice.toFixed(4)} ETH` : '未上架'}
+                {nft.floorPrice ? `${nft.floorPrice.toFixed(4)} ETH` : t('pages.notListed')}
               </p>
               {nft.lastSalePrice && (
                 <p className="text-sm text-gray-500 mt-1">
-                  最近成交: {nft.lastSalePrice.toFixed(4)} ETH
+                  {t('pages.lastSale')}: {nft.lastSalePrice.toFixed(4)} ETH
                 </p>
               )}
             </div>
@@ -226,10 +226,10 @@ export default function NFTDetailsPage() {
                   className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                 >
                   {!isConnected
-                    ? '请先连接钱包'
+                    ? t('pages.connectWalletFirst')
                     : isPurchasing
-                    ? '购买中...'
-                    : '立即购买'}
+                    ? t('pages.purchasing')
+                    : t('pages.buyNow')}
                 </button>
               )}
 
@@ -237,7 +237,7 @@ export default function NFTDetailsPage() {
                 onClick={() => navigate(`/trade/${tokenId}`)}
                 className="w-full px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold"
               >
-                进入交易页面
+                {t('pages.goToTrading')}
               </button>
 
               {!isOwner && (
@@ -246,13 +246,13 @@ export default function NFTDetailsPage() {
                   disabled={!isConnected}
                   className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                 >
-                  出价
+                  {t('pages.makeOffer')}
                 </button>
               )}
 
               {isOwner && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-green-800 font-medium">您是此 NFT 的持有者</p>
+                  <p className="text-green-800 font-medium">{t('pages.youOwnThisNft')}</p>
                 </div>
               )}
             </div>
@@ -262,7 +262,7 @@ export default function NFTDetailsPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-500 mb-1">创作者</p>
+                <p className="text-sm text-gray-500 mb-1">{t('pages.creator')}</p>
                 <button
                   onClick={() => navigate(`/profile/${nft.creator}`)}
                   className="text-blue-600 hover:text-blue-700 font-medium"
@@ -271,7 +271,7 @@ export default function NFTDetailsPage() {
                 </button>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">当前持有者</p>
+                <p className="text-sm text-gray-500 mb-1">{t('pages.currentOwner')}</p>
                 <button
                   onClick={() => navigate(`/profile/${nft.owner}`)}
                   className="text-blue-600 hover:text-blue-700 font-medium"
@@ -280,7 +280,7 @@ export default function NFTDetailsPage() {
                 </button>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">铸造时间</p>
+                <p className="text-sm text-gray-500 mb-1">{t('pages.mintTime')}</p>
                 <p className="font-medium">{formatDate(nft.createdAt)}</p>
               </div>
             </div>
@@ -288,19 +288,19 @@ export default function NFTDetailsPage() {
 
           {/* Metadata */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="font-semibold mb-4">元数据</h3>
+            <h3 className="font-semibold mb-4">{t('pages.metadata')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">分类</span>
+                <span className="text-gray-500">{t('pages.category')}</span>
                 <span className="font-medium">{nft.metadata.category}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">文件大小</span>
+                <span className="text-gray-500">{t('pages.fileSize')}</span>
                 <span className="font-medium">{formatFileSize(nft.metadata.fileSize)}</span>
               </div>
               {nft.metadata.duration && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">时长</span>
+                  <span className="text-gray-500">{t('pages.duration')}</span>
                   <span className="font-medium">
                     {Math.floor(nft.metadata.duration / 60)}:
                     {(nft.metadata.duration % 60).toString().padStart(2, '0')}
@@ -308,15 +308,15 @@ export default function NFTDetailsPage() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-500">语言</span>
+                <span className="text-gray-500">{t('pages.language')}</span>
                 <span className="font-medium">{nft.metadata.language}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">许可证</span>
+                <span className="text-gray-500">{t('pages.license')}</span>
                 <span className="font-medium">{nft.metadata.license}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Token ID</span>
+                <span className="text-gray-500">{t('pages.tokenId')}</span>
                 <span className="font-medium">#{nft.tokenId}</span>
               </div>
             </div>
@@ -450,7 +450,7 @@ export default function NFTDetailsPage() {
 
         {activeTab === 'holders' && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="font-semibold mb-4">持有者分布</h3>
+            <h3 className="font-semibold mb-4">{t('pages.holderDistribution')}</h3>
             <div className="space-y-4">
               {nft.holders.map((holder, index) => (
                 <div key={holder.address} className="flex items-center gap-4">
@@ -474,7 +474,7 @@ export default function NFTDetailsPage() {
                       ></div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      持有自 {formatDate(holder.since)}
+                      {t('pages.heldSince')} {formatDate(holder.since)}
                     </p>
                   </div>
                 </div>
@@ -488,10 +488,10 @@ export default function NFTDetailsPage() {
       {showOfferModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4">出价</h3>
+            <h3 className="text-xl font-bold mb-4">{t('pages.offer')}</h3>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                出价金额 (ETH)
+                {t('pages.offerAmount')}
               </label>
               <input
                 type="number"
@@ -503,7 +503,7 @@ export default function NFTDetailsPage() {
               />
               {nft.floorPrice && (
                 <p className="text-sm text-gray-500 mt-1">
-                  当前价格: {nft.floorPrice.toFixed(4)} ETH
+                  {t('pages.currentPrice')}: {nft.floorPrice.toFixed(4)} ETH
                 </p>
               )}
             </div>
@@ -515,7 +515,7 @@ export default function NFTDetailsPage() {
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                取消
+                {t('pages.cancel')}
               </button>
               <button
                 onClick={handleMakeOffer}

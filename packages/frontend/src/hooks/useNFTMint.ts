@@ -57,16 +57,19 @@ export function useNFTMint() {
       
       const mintResult = await nftAPI.mint({
         contentHash: formData.contentHash,
-        metadataURI,
+        metadataUri: metadataURI,
         category: formData.category,
-        royalty: formData.royalty,
+        royalty: typeof formData.royalty === 'number' ? formData.royalty : (formData.royalty.percentages?.[0] || 0),
       })
+
+      const txHash = mintResult.data?.txHash || ''
+      const tokenId = mintResult.data?.tokenId || ''
 
       // Step 3: Wait for transaction confirmation
       setMintState(prev => ({ 
         ...prev, 
         status: 'confirming',
-        txHash: mintResult.txHash 
+        txHash 
       }))
 
       // Simulate waiting for confirmation (in production, use useWaitForTransactionReceipt)
@@ -77,13 +80,13 @@ export function useNFTMint() {
         isMinting: false,
         status: 'complete',
         error: null,
-        tokenId: mintResult.tokenId,
-        txHash: mintResult.txHash,
+        tokenId,
+        txHash,
       })
 
       return {
-        tokenId: mintResult.tokenId,
-        txHash: mintResult.txHash,
+        tokenId,
+        txHash,
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '铸造失败'

@@ -1,65 +1,70 @@
 #!/bin/bash
 
+# KnowTon Platform - 快速启动脚本
+
 set -e
 
-echo "🚀 Starting KnowTon Platform..."
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker is not running. Please start Docker first."
-    exit 1
-fi
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
 
-# Start infrastructure services
-echo "📦 Starting infrastructure services..."
-docker-compose up -d postgres redis mongodb clickhouse kafka elasticsearch
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
 
-# Wait for services to be healthy
-echo "⏳ Waiting for services to be ready..."
+echo "======================================"
+echo "  KnowTon Platform 快速启动"
+echo "======================================"
+echo ""
+
+# 创建日志目录
+mkdir -p logs
+
+# 启动 Docker 服务
+log_info "启动 Docker 服务..."
+docker-compose up -d postgres redis mongodb
+
+log_info "等待数据库就绪..."
 sleep 10
 
-# Initialize databases
-echo "🔧 Initializing databases..."
-docker-compose exec -T mongodb mongosh -u knowton -p knowton_mongo_password --authenticationDatabase admin < scripts/mongodb-init.js || true
-docker-compose exec -T clickhouse clickhouse-client --multiquery < scripts/clickhouse-init.sql || true
+# 启动后端
+log_info "启动后端服务..."
+cd packages/backend
+npm run dev > ../../logs/backend.log 2>&1 &
+cd ../..
 
-# Initialize Kafka topics
-echo "📨 Creating Kafka topics..."
-bash scripts/kafka-init.sh || true
+sleep 5
 
-# Initialize Elasticsearch indices
-echo "🔍 Creating Elasticsearch indices..."
-bash scripts/elasticsearch-init.sh || true
+# 启动 Oracle Adapter
+log_info "启动 Oracle Adapter..."
+cd packages/oracle-adapter
+uvicorn src.main:app --host 0.0.0.0 --port 8000 > ../../logs/oracle.log 2>&1 &
+cd ../..
 
-# Run database migrations
-echo "🗄️  Running database migrations..."
-cd packages/backend && npx prisma migrate dev --name init && cd ../..
+sleep 5
 
-# Start backend services
-echo "🖥️  Starting backend services..."
-cd packages/backend && npm run dev &
-BACKEND_PID=$!
+# 启动前端
+log_info "启动前端..."
+cd packages/frontend
+npm run dev > ../../logs/frontend.log 2>&1 &
+cd ../..
 
-# Start frontend
-echo "🎨 Starting frontend..."
-cd packages/frontend && npm run dev &
-FRONTEND_PID=$!
+sleep 5
 
 echo ""
-echo "✅ KnowTon Platform is starting!"
+log_success "所有服务已启动！"
 echo ""
-echo "📍 Services:"
-echo "   Frontend:     http://localhost:5173"
-echo "   Backend API:  http://localhost:3000"
-echo "   PostgreSQL:   localhost:5432"
-echo "   Redis:        localhost:6379"
-echo "   MongoDB:      localhost:27017"
-echo "   ClickHouse:   localhost:8123"
-echo "   Kafka:        localhost:9092"
-echo "   Elasticsearch: localhost:9200"
+echo "访问地址:"
+echo "  - 前端: http://localhost:5173"
+echo "  - 后端: http://localhost:3000"
+echo "  - Oracle: http://localhost:8000"
 echo ""
-echo "Press Ctrl+C to stop all services"
-
-# Wait for interrupt
-trap "echo ''; echo '🛑 Stopping services...'; kill $BACKEND_PID $FRONTEND_PID; docker-compose down; exit" INT
-wait
+echo "查看日志:"
+echo "  - tail -f logs/backend.log"
+echo "  - tail -f logs/oracle.log"
+echo "  - tail -f logs/frontend.log"
+echo ""

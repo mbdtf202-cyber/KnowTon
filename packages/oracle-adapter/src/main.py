@@ -50,6 +50,10 @@ async def lifespan(app: FastAPI):
     await valuation_service.load_model()
     await recommendation_service.load_model()
     
+    # Initialize Chainlink Oracle service
+    from src.services.chainlink_service import chainlink_oracle
+    await chainlink_oracle.initialize()
+    
     logger.info("All services initialized successfully")
     
     yield

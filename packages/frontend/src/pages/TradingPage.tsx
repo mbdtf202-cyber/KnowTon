@@ -8,11 +8,17 @@ import OrderForm from '../components/OrderForm'
 import RecentTrades from '../components/RecentTrades'
 import PriceChart from '../components/PriceChart'
 import { formatAddress } from '../utils/format'
+import TradingListPage from './TradingListPage'
 
 export default function TradingPage() {
   const { tokenId } = useParams<{ tokenId: string }>()
   const navigate = useNavigate()
   const { isConnected } = useAccount()
+  
+  // If no tokenId, show NFT list for trading
+  if (!tokenId) {
+    return <TradingListPage />
+  }
   
   const { nft, loading: nftLoading } = useNFTDetails(tokenId || '')
   const {
@@ -25,16 +31,6 @@ export default function TradingPage() {
   } = useOrderBook({ tokenId: tokenId || '', autoConnect: true })
 
   const [activeTab, setActiveTab] = useState<'chart' | 'depth'>('chart')
-
-  if (!tokenId) {
-    return (
-      <div className="max-w-7xl mx-auto py-12">
-        <div className="text-center">
-          <p className="text-red-600">无效的 Token ID</p>
-        </div>
-      </div>
-    )
-  }
 
   if (nftLoading || orderBookLoading) {
     return (

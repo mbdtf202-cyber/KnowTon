@@ -72,3 +72,4 @@ packages/backend/prisma/migrations/
 # Misc
 .cache/
 .parcel-cache/
+.vercel

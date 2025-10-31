@@ -116,4 +116,31 @@ export class BondingController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  async getBondValuationAndRisk(req: Request, res: Response): Promise<void> {
+    try {
+      const { bondId } = req.params;
+      
+      if (!bondId) {
+        res.status(400).json({ error: 'Bond ID is required' });
+        return;
+      }
+
+      const result = await bondingService.getBondValuationAndRisk(parseInt(bondId));
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error in getBondValuationAndRisk:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async refreshBondValuations(req: Request, res: Response): Promise<void> {
+    try {
+      await bondingService.refreshBondValuations();
+      res.json({ success: true, message: 'Bond valuations refreshed successfully' });
+    } catch (error: any) {
+      console.error('Error in refreshBondValuations:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
 }

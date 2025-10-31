@@ -4,171 +4,69 @@ package bonding;
 
 option go_package = "github.com/knowton/bonding-service/proto";
 
-// Bonding Service for IP Bond issuance and management
 service BondingService {
-  // Issue a new IP bond with tranche structure
   rpc IssueBond(IssueBondRequest) returns (IssueBondResponse);
-  
-  // Get bond information
+  rpc Invest(InvestRequest) returns (InvestResponse);
   rpc GetBondInfo(GetBondInfoRequest) returns (GetBondInfoResponse);
-  
-  // Invest in a bond tranche
-  rpc InvestInBond(InvestInBondRequest) returns (InvestInBondResponse);
-  
-  // Distribute revenue to bond holders
   rpc DistributeRevenue(DistributeRevenueRequest) returns (DistributeRevenueResponse);
-  
-  // Assess IP value and risk
-  rpc AssessIPRisk(AssessIPRiskRequest) returns (AssessIPRiskResponse);
-  
-  // Redeem bond investment
-  rpc RedeemBond(RedeemBondRequest) returns (RedeemBondResponse);
 }
 
-// Request to issue a new bond
 message IssueBondRequest {
   string ipnft_id = 1;
-  string total_value = 2;  // in ETH
-  int64 maturity_date = 3;  // Unix timestamp
-  TrancheConfig senior = 4;
-  TrancheConfig mezzanine = 5;
-  TrancheConfig junior = 6;
-  string issuer_address = 7;
+  string nft_contract = 2;
+  string total_value = 3;
+  string senior_allocation = 4;
+  string mezzanine_allocation = 5;
+  string junior_allocation = 6;
+  int64 maturity_date = 7;
 }
 
-// Tranche configuration
-message TrancheConfig {
-  string name = 1;
-  int32 priority = 2;
-  string allocation_percentage = 3;  // e.g., "50" for 50%
-  double apy = 4;  // Annual percentage yield
-  string risk_level = 5;  // Low, Medium, High
-}
-
-// Response after issuing bond
 message IssueBondResponse {
   string bond_id = 1;
   string tx_hash = 2;
   string status = 3;
-  repeated TrancheInfo tranches = 4;
-  RiskAssessment risk_assessment = 5;
 }
 
-// Tranche information
-message TrancheInfo {
-  int32 tranche_id = 1;
-  string name = 2;
-  int32 priority = 3;
-  string allocation = 4;
-  double apy = 5;
-  string risk_level = 6;
-  string total_invested = 7;
-}
-
-// Risk assessment result
-message RiskAssessment {
-  double valuation_usd = 1;
-  double confidence_score = 2;
-  string risk_rating = 3;  // AAA, AA, A, BBB, BB, B, CCC
-  double default_probability = 4;
-  repeated string risk_factors = 5;
-  double recommended_ltv = 6;  // Loan-to-value ratio
-}
-
-// Request to get bond info
-message GetBondInfoRequest {
+message InvestRequest {
   string bond_id = 1;
-}
-
-// Response with bond information
-message GetBondInfoResponse {
-  string bond_id = 1;
-  string ipnft_id = 2;
-  string nft_contract = 3;
-  string issuer = 4;
-  string total_value = 5;
-  int64 maturity_date = 6;
-  string status = 7;  // Active, Matured, Defaulted
-  repeated TrancheInfo tranches = 8;
-  string total_revenue = 9;
-  int64 created_at = 10;
-}
-
-// Request to invest in bond
-message InvestInBondRequest {
-  string bond_id = 1;
-  int32 tranche_id = 2;
+  uint32 tranche_id = 2;
   string amount = 3;
   string investor_address = 4;
 }
 
-// Response after investment
-message InvestInBondResponse {
+message InvestResponse {
   string tx_hash = 1;
   string status = 2;
-  string invested_amount = 3;
-  double expected_return = 4;
 }
 
-// Request to distribute revenue
+message GetBondInfoRequest {
+  string bond_id = 1;
+}
+
+message GetBondInfoResponse {
+  string bond_id = 1;
+  string ipnft_id = 2;
+  string issuer = 3;
+  string total_value = 4;
+  int64 maturity_date = 5;
+  string status = 6;
+  repeated TrancheInfo tranches = 7;
+}
+
+message TrancheInfo {
+  uint32 tranche_id = 1;
+  string name = 2;
+  string allocation = 3;
+  string apy = 4;
+  string total_invested = 5;
+}
+
 message DistributeRevenueRequest {
   string bond_id = 1;
-  string amount = 2;
+  string revenue = 2;
 }
 
-// Response after revenue distribution
 message DistributeRevenueResponse {
   string tx_hash = 1;
   string status = 2;
-  repeated TrancheDistribution distributions = 3;
-}
-
-// Tranche distribution details
-message TrancheDistribution {
-  int32 tranche_id = 1;
-  string name = 2;
-  string amount_distributed = 3;
-  int32 investor_count = 4;
-}
-
-// Request to assess IP risk
-message AssessIPRiskRequest {
-  string ipnft_id = 1;
-  IPMetadata metadata = 2;
-}
-
-// IP metadata for risk assessment
-message IPMetadata {
-  string category = 1;
-  string creator_address = 2;
-  int64 created_at = 3;
-  int32 views = 4;
-  int32 likes = 5;
-  repeated string tags = 6;
-  string content_hash = 7;
-}
-
-// Response with risk assessment
-message AssessIPRiskResponse {
-  RiskAssessment assessment = 1;
-  repeated ComparableSale comparable_sales = 2;
-  MarketAnalysis market_analysis = 3;
-}
-
-// Comparable sale data
-message ComparableSale {
-  string token_id = 1;
-  string category = 2;
-  double sale_price = 3;
-  int64 sale_date = 4;
-  double similarity_score = 5;
-}
-
-// Market analysis
-message MarketAnalysis {
-  double avg_price = 1;
-  double median_price = 2;
-  double price_trend = 3;  // Percentage change
-  int32 total_sales = 4;
-  double liquidity_score = 5;
 }

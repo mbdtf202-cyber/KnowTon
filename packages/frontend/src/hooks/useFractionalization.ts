@@ -85,13 +85,17 @@ export function useFractionalization() {
         reservePrice: formData.reservePrice,
       })
 
+      const txHash = fractionalizeResult.data?.txHash || ''
+      const vaultId = fractionalizeResult.data?.vaultId || ''
+      const fractionalToken = fractionalizeResult.data?.fractionalToken || ''
+
       // Step 3: Wait for confirmation
       setFractionalizeState(prev => ({ 
         ...prev, 
         status: 'confirming',
-        txHash: fractionalizeResult.txHash,
-        vaultId: fractionalizeResult.vaultId,
-        fractionalToken: fractionalizeResult.fractionalToken,
+        txHash,
+        vaultId,
+        fractionalToken,
       }))
 
       // Simulate waiting for confirmation
@@ -101,10 +105,12 @@ export function useFractionalization() {
       setFractionalizeState(prev => ({ ...prev, status: 'creating_pool' }))
       
       const poolResult = await fractionalAPI.createPool({
-        vaultId: fractionalizeResult.vaultId,
-        fractionalToken: fractionalizeResult.fractionalToken,
+        vaultId,
+        fractionalToken,
         initialLiquidity: formData.initialLiquidity,
       })
+
+      const poolAddress = poolResult.data?.poolAddress || ''
 
       // Wait for pool creation
       await new Promise(resolve => setTimeout(resolve, 2000))
@@ -114,17 +120,17 @@ export function useFractionalization() {
         isFractionalizing: false,
         status: 'complete',
         error: null,
-        vaultId: fractionalizeResult.vaultId,
-        fractionalToken: fractionalizeResult.fractionalToken,
+        vaultId,
+        fractionalToken,
         totalSupply: formData.totalSupply,
-        poolAddress: poolResult.poolAddress,
-        txHash: fractionalizeResult.txHash,
+        poolAddress,
+        txHash,
       })
 
       return {
-        vaultId: fractionalizeResult.vaultId,
-        fractionalToken: fractionalizeResult.fractionalToken,
-        poolAddress: poolResult.poolAddress,
+        vaultId,
+        fractionalToken,
+        poolAddress,
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '碎片化失败'
@@ -145,7 +151,7 @@ export function useFractionalization() {
   const loadVaultInfo = useCallback(async (vaultId: string) => {
     try {
       const info = await fractionalAPI.getVaultInfo(vaultId)
-      setVaultInfo(info as VaultInfo)
+      setVaultInfo(info.data as VaultInfo)
     } catch (error) {
       console.error('Failed to load vault info:', error)
     }

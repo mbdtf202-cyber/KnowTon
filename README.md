@@ -1446,7 +1446,17 @@ const portfolio = await knowton.createPortfolio({
 - **Git** 2.40+
 - **Make** (可选，用于便捷命令)
 
-### 一键安装 | One-Command Setup
+### 🚀 快速部署 | Quick Deploy
+
+#### Vercel 一键部署 | Deploy to Vercel
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mbdtf202-cyber/KnowTon)
+
+```bash
+# 或使用 CLI 部署
+./scripts/deploy-vercel.sh --prod
+```
+
+#### 本地开发 | Local Development
 
 ```bash
 # 克隆并设置所有内容
@@ -1535,6 +1545,56 @@ npm run dev
 | **IP 估值** | XGBoost 集成 | 85%+ | 定价建议 |
 | **推荐** | 图神经网络 | 88%+ | 内容发现 |
 | **欺诈检测** | 孤立森林 | 90%+ | 安全监控 |
+
+## 🚀 部署指南 | Deployment Guide
+
+### 🌐 Vercel 部署 (推荐前端)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mbdtf202-cyber/KnowTon)
+
+```bash
+# 快速部署脚本
+./scripts/deploy-vercel.sh --prod
+
+# 或手动部署
+npm install -g vercel
+vercel --prod
+```
+
+**配置要求**:
+- 设置环境变量 (参考 `vercel-env-template.txt`)
+- 获取 WalletConnect Project ID
+- 配置后端 API 地址
+
+📖 **详细指南**: [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) | [VERCEL_QUICK_START.md](./VERCEL_QUICK_START.md)
+
+### ☸️ Kubernetes 部署 (推荐生产环境)
+
+```bash
+# 自动部署到 Kubernetes
+make k8s-deploy
+
+# 或手动部署
+kubectl apply -f k8s/dev/
+```
+
+📖 **详细指南**: [k8s/README.md](./k8s/README.md)
+
+### 🐳 Docker 部署
+
+```bash
+# 简单部署
+docker-compose up -d
+
+# 生产环境
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### 🔄 CI/CD 自动部署
+
+- **GitHub Actions**: 自动部署到 Vercel
+- **Kubernetes**: GitOps 工作流
+- **监控**: 自动健康检查和回滚
 
 ## 🧪 测试与质量保证 | Testing & Quality Assurance
 

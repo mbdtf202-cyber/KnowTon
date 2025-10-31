@@ -11,4 +11,8 @@ router.post('/bonds/:bondId/tranches/:trancheId/redeem', bondingController.redee
 router.get('/bonds/:bondId', bondingController.getBondInfo);
 router.get('/investors/:investor/bonds', bondingController.getInvestorBonds);
 
+// New valuation-integrated endpoints
+router.get('/bonds/:bondId/valuation', bondingController.getBondValuationAndRisk);
+router.post('/bonds/refresh-valuations', bondingController.refreshBondValuations);
+
 export default router;

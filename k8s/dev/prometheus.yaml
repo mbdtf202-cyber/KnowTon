@@ -18,7 +18,7 @@ data:
     alerting:
       alertmanagers:
         - static_configs:
-            - targets: []
+            - targets: ['alertmanager-service:9093']
 
     # Load rules once and periodically evaluate them
     rule_files:
@@ -344,10 +344,10 @@ spec:
                 path: prometheus.yml
         - name: prometheus-rules
           configMap:
-            name: prometheus-config
+            name: prometheus-alerts
             items:
-              - key: alert_rules.yml
-                path: alert_rules.yml
+              - key: alerts.yml
+                path: alerts.yml
         - name: prometheus-storage
           persistentVolumeClaim:
             claimName: prometheus-pvc

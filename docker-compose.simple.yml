@@ -1,26 +1,45 @@
+version: '3.8'
+
 services:
-  # PostgreSQL - 主数据库
+  # PostgreSQL
   postgres:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: knowton-postgres
     environment:
       POSTGRES_USER: knowton
       POSTGRES_PASSWORD: knowton_dev_password
       POSTGRES_DB: knowton
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
-  # Redis - 缓存
+  # Redis
   redis:
     image: redis:7-alpine
     container_name: knowton-redis
+    command: redis-server --requirepass knowton_redis_password
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
+
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: knowton-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: knowton
+      MONGO_INITDB_ROOT_PASSWORD: knowton_mongo_password
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+  mongodb_data:

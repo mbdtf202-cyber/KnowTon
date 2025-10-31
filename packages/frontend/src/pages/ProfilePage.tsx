@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useAccount } from 'wagmi'
 import { nftAPI, creatorAPI } from '../services/api'
 import type { IPNFT, Transaction, User } from '../types'
 import { formatAddress, formatDate, formatEther } from '../utils/format'
@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 export default function ProfilePage() {
-  const { address } = useAuth()
+  const { address } = useAccount()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'portfolio' | 'transactions' | 'settings'>('portfolio')
   const [isEditing, setIsEditing] = useState(false)
@@ -37,7 +37,8 @@ export default function ProfilePage() {
     setLoading(true)
     try {
       // Load user profile
-      const profileData = await creatorAPI.getProfile(address) as User
+      const profileResponse = await creatorAPI.getProfile(address)
+      const profileData = profileResponse.data as User
       setProfile(profileData)
       setEditForm({
         username: profileData.username || '',
@@ -50,8 +51,9 @@ export default function ProfilePage() {
       })
 
       // Load user's NFTs
-      const nftData = await nftAPI.getUserNFTs(address) as { nfts: IPNFT[] }
-      setNfts(nftData.nfts || [])
+      const nftResponse = await nftAPI.getAll({ limit: 100 })
+      const nftData = nftResponse.data as { nfts: IPNFT[] }
+      setNfts(nftData?.nfts || [])
 
       // Mock transaction data (would come from API in production)
       setTransactions([
@@ -93,16 +95,9 @@ export default function ProfilePage() {
     if (!address) return
 
     try {
-      await creatorAPI.updateProfile(address, {
+      await creatorAPI.update(address, {
         username: editForm.username,
         bio: editForm.bio,
-        email: editForm.email,
-        avatar: editForm.avatar,
-        socialLinks: {
-          twitter: editForm.twitter,
-          discord: editForm.discord,
-          website: editForm.website,
-        },
       })
       setIsEditing(false)
       await loadProfileData()

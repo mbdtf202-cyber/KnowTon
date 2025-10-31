@@ -244,8 +244,15 @@ class ValuationService:
             )
             
             # 9. Submit to Chainlink Oracle (if configured)
-            if settings.chainlink_oracle_address and self.w3:
-                await self._submit_to_chainlink(token_id, estimated_value)
+            if settings.chainlink_oracle_address:
+                from src.services.chainlink_service import chainlink_oracle
+                if chainlink_oracle.is_ready():
+                    await chainlink_oracle.submit_valuation(
+                        str(token_id),
+                        estimated_value,
+                        1.0 - model_uncertainty,
+                        metadata
+                    )
             
             # 10. Update model performance metrics
             await self._update_model_metrics(estimated_value, features)

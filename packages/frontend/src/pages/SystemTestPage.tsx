@@ -42,7 +42,7 @@ const SystemTestPage: React.FC = () => {
     try {
       // Test 2: Get Creators
       const creatorsData = await simpleAPI.getCreators();
-      updateTest('Get Creators', 'success', `Found ${creatorsData.data?.length || 0} creators`, creatorsData);
+      updateTest('Get Creators', 'success', `Found ${(creatorsData as any).data?.length || 0} creators`, creatorsData);
     } catch (error) {
       updateTest('Get Creators', 'error', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -50,7 +50,7 @@ const SystemTestPage: React.FC = () => {
     try {
       // Test 3: Get NFTs
       const nftsData = await simpleAPI.getNFTs();
-      updateTest('Get NFTs', 'success', `Found ${nftsData.data?.length || 0} NFTs`, nftsData);
+      updateTest('Get NFTs', 'success', `Found ${(nftsData as any).data?.length || 0} NFTs`, nftsData);
     } catch (error) {
       updateTest('Get NFTs', 'error', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -74,7 +74,7 @@ const SystemTestPage: React.FC = () => {
     try {
       // Test 6: Get Proposals
       const proposalsData = await simpleAPI.getProposals();
-      updateTest('Get Proposals', 'success', `Found ${proposalsData.data?.length || 0} proposals`, proposalsData);
+      updateTest('Get Proposals', 'success', `Found ${(proposalsData as any).data?.length || 0} proposals`, proposalsData);
     } catch (error) {
       updateTest('Get Proposals', 'error', error instanceof Error ? error.message : 'Unknown error');
     }

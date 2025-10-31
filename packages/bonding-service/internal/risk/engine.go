@@ -1,28 +1,80 @@
 package risk
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/knowton/bonding-service/internal/models"
+	"github.com/knowton/bonding-service/internal/oracle"
 )
 
 // RiskEngine assesses IP value and risk
 type RiskEngine struct {
-	// In production, this would connect to AI models and historical data
+	oracleClient *oracle.OracleClient
+	useOracle    bool
 }
 
 // NewRiskEngine creates a new risk assessment engine
 func NewRiskEngine() *RiskEngine {
-	return &RiskEngine{}
+	return &RiskEngine{
+		useOracle: false,
+	}
+}
+
+// NewRiskEngineWithOracle creates a new risk assessment engine with Oracle Adapter integration
+func NewRiskEngineWithOracle(oracleURL string) *RiskEngine {
+	return &RiskEngine{
+		oracleClient: oracle.NewOracleClient(oracleURL),
+		useOracle:    true,
+	}
 }
 
 // AssessIPValue estimates the value and risk of an IP-NFT
 func (re *RiskEngine) AssessIPValue(ipnftID string, metadata *IPMetadata) (*models.RiskAssessment, error) {
-	// 1. Calculate base valuation using multiple factors
-	baseValuation := re.calculateBaseValuation(metadata)
+	var baseValuation float64
+	var confidence float64
+	
+	// Try to use Oracle Adapter for more accurate valuation
+	if re.useOracle && re.oracleClient != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		
+		// Prepare metadata for Oracle
+		oracleMetadata := map[string]interface{}{
+			"category":        metadata.Category,
+			"creator":         metadata.CreatorAddress,
+			"views":           metadata.Views,
+			"likes":           metadata.Likes,
+			"tags":            metadata.Tags,
+			"content_hash":    metadata.ContentHash,
+			"created_at":      metadata.CreatedAt.Unix(),
+			"quality_score":   0.7, // Would be calculated from content analysis
+			"rarity":          0.6,
+			"has_license":     1,
+			"is_verified":     1,
+		}
+		
+		// Call Oracle Adapter
+		valuation, err := re.oracleClient.EstimateValue(ctx, ipnftID, oracleMetadata, nil)
+		if err != nil {
+			// Fallback to rule-based valuation
+			fmt.Printf("Oracle valuation failed, using fallback: %v\n", err)
+			baseValuation = re.calculateBaseValuation(metadata)
+			confidence = re.calculateConfidenceScore(metadata)
+		} else {
+			// Use Oracle valuation
+			baseValuation = valuation.EstimatedValue
+			confidence = 1.0 - valuation.ModelUncertainty
+			fmt.Printf("Oracle valuation successful: $%.2f (confidence: %.2f)\n", baseValuation, confidence)
+		}
+	} else {
+		// Use rule-based valuation
+		baseValuation = re.calculateBaseValuation(metadata)
+		confidence = re.calculateConfidenceScore(metadata)
+	}
 	
 	// 2. Assess risk factors
 	riskFactors := re.identifyRiskFactors(metadata)
@@ -35,9 +87,6 @@ func (re *RiskEngine) AssessIPValue(ipnftID string, metadata *IPMetadata) (*mode
 	
 	// 5. Calculate recommended LTV
 	ltv := re.calculateRecommendedLTV(riskRating, defaultProb)
-	
-	// 6. Calculate confidence score
-	confidence := re.calculateConfidenceScore(metadata)
 	
 	// Serialize risk factors to JSON
 	riskFactorsJSON, err := json.Marshal(riskFactors)

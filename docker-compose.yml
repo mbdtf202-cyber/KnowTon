@@ -152,7 +152,7 @@ services:
     ports:
       - "4001:4001"
       - "5001:5001"
-      - "8080:8080"
+      - "8090:8080"  # Changed to avoid conflict
     volumes:
       - ipfs_data:/data/ipfs
     networks:

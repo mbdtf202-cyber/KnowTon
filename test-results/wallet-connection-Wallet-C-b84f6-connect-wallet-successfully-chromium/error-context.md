@@ -1,0 +1,228 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e9]:
+    - banner [ref=e10]:
+      - navigation [ref=e12]:
+        - generic [ref=e13]:
+          - link "K KnowTon Beta" [ref=e14] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e17]: K
+            - generic [ref=e18]: KnowTon
+            - generic [ref=e19]: Beta
+          - generic [ref=e20]:
+            - link "🏪 Marketplace" [ref=e21] [cursor=pointer]:
+              - /url: /marketplace
+              - generic [ref=e23]:
+                - generic [ref=e24]: 🏪
+                - generic [ref=e25]: Marketplace
+            - link "📤 Upload" [ref=e26] [cursor=pointer]:
+              - /url: /upload
+              - generic [ref=e28]:
+                - generic [ref=e29]: 📤
+                - generic [ref=e30]: Upload
+            - link "✨ Mint" [ref=e31] [cursor=pointer]:
+              - /url: /mint
+              - generic [ref=e33]:
+                - generic [ref=e34]: ✨
+                - generic [ref=e35]: Mint
+            - link "💱 Trading" [ref=e36] [cursor=pointer]:
+              - /url: /trading
+              - generic [ref=e38]:
+                - generic [ref=e39]: 💱
+                - generic [ref=e40]: Trading
+            - link "💎 Staking" [ref=e41] [cursor=pointer]:
+              - /url: /staking
+              - generic [ref=e43]:
+                - generic [ref=e44]: 💎
+                - generic [ref=e45]: Staking
+            - link "🗳️ Governance" [ref=e46] [cursor=pointer]:
+              - /url: /governance
+              - generic [ref=e48]:
+                - generic [ref=e49]: 🗳️
+                - generic [ref=e50]: Governance
+            - link "📊 Analytics" [ref=e51] [cursor=pointer]:
+              - /url: /analytics
+              - generic [ref=e53]:
+                - generic [ref=e54]: 📊
+                - generic [ref=e55]: Analytics
+          - generic [ref=e56]:
+            - button "Change language" [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]: 🇺🇸
+              - generic [ref=e60]: English
+              - img [ref=e61]
+            - button "Connect Wallet" [ref=e65] [cursor=pointer]:
+              - generic [ref=e67]:
+                - img [ref=e68]
+                - text: Connect Wallet
+    - main [ref=e70]:
+      - generic [ref=e71]:
+        - generic [ref=e80]:
+          - generic [ref=e81]: 🚀
+          - heading "KnowTon Platform" [level=1] [ref=e82]
+          - paragraph [ref=e83]: Tokenize, trade, and monetize intellectual property on Web3
+          - generic [ref=e84]:
+            - link "🚀 Get Started" [ref=e85] [cursor=pointer]:
+              - /url: /register
+              - generic [ref=e86]: 🚀 Get Started
+            - link "🏪 Explore Market" [ref=e88] [cursor=pointer]:
+              - /url: /marketplace
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - heading "Platform Overview" [level=2] [ref=e92]
+            - paragraph [ref=e93]: Real-time platform statistics
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - generic [ref=e96]: 1,234
+              - generic [ref=e97]: 👨‍🎨 Creators
+            - generic [ref=e98]:
+              - generic [ref=e99]: 5,678
+              - generic [ref=e100]: 🎨 IP-NFTs
+            - generic [ref=e101]:
+              - generic [ref=e102]: $2.3M
+              - generic [ref=e103]: 💰 Trading Volume
+            - generic [ref=e104]:
+              - generic [ref=e105]: 98%
+              - generic [ref=e106]: 😊 Satisfaction
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - heading "Core Features" [level=2] [ref=e110]
+            - paragraph [ref=e111]: Explore the powerful features of KnowTon platform
+          - generic [ref=e112]:
+            - link "🎨 Mint IP-NFT Create your intellectual property NFT" [ref=e113] [cursor=pointer]:
+              - /url: /upload
+              - generic [ref=e115]:
+                - generic [ref=e116]: 🎨
+                - heading "Mint IP-NFT" [level=3] [ref=e117]
+                - paragraph [ref=e118]: Create your intellectual property NFT
+            - link "💎 Fractionalize NFT Split your NFT into tradeable tokens" [ref=e119] [cursor=pointer]:
+              - /url: /fractionalize
+              - generic [ref=e121]:
+                - generic [ref=e122]: 💎
+                - heading "Fractionalize NFT" [level=3] [ref=e123]
+                - paragraph [ref=e124]: Split your NFT into tradeable tokens
+            - link "🔒 Privacy Protection Zero-knowledge proof technology to verify ownership while protecting privacy" [ref=e125] [cursor=pointer]:
+              - /url: /marketplace
+              - generic [ref=e127]:
+                - generic [ref=e128]: 🔒
+                - heading "Privacy Protection" [level=3] [ref=e129]
+                - paragraph [ref=e130]: Zero-knowledge proof technology to verify ownership while protecting privacy
+            - link "🏛️ DAO Governance Community-driven platform governance, participate in decisions and earn rewards" [ref=e131] [cursor=pointer]:
+              - /url: /governance
+              - generic [ref=e133]:
+                - generic [ref=e134]: 🏛️
+                - heading "DAO Governance" [level=3] [ref=e135]
+                - paragraph [ref=e136]: Community-driven platform governance, participate in decisions and earn rewards
+            - link "📊 Data Analytics Real-time tracking of your IP asset performance, optimize investment strategies" [ref=e137] [cursor=pointer]:
+              - /url: /analytics
+              - generic [ref=e139]:
+                - generic [ref=e140]: 📊
+                - heading "Data Analytics" [level=3] [ref=e141]
+                - paragraph [ref=e142]: Real-time tracking of your IP asset performance, optimize investment strategies
+            - link "💱 AMM Trading Automated market maker, 24/7 non-stop trading of your IP assets" [ref=e143] [cursor=pointer]:
+              - /url: /trading
+              - generic [ref=e145]:
+                - generic [ref=e146]: 💱
+                - heading "AMM Trading" [level=3] [ref=e147]
+                - paragraph [ref=e148]: Automated market maker, 24/7 non-stop trading of your IP assets
+        - generic [ref=e152]:
+          - heading "Ready to Get Started?" [level=2] [ref=e153]
+          - paragraph [ref=e154]: Join the KnowTon community and turn your creativity into valuable digital assets
+          - generic [ref=e155]:
+            - link "✨ Free Registration" [ref=e156] [cursor=pointer]:
+              - /url: /register
+              - text: ✨ Free Registration
+            - link "🔍 Browse Works" [ref=e158] [cursor=pointer]:
+              - /url: /marketplace
+    - contentinfo [ref=e159]:
+      - generic [ref=e161]:
+        - generic [ref=e162]:
+          - generic [ref=e163]:
+            - heading "KnowTon" [level=3] [ref=e164]
+            - paragraph [ref=e165]: Decentralized Knowledge IP Platform
+          - generic [ref=e166]:
+            - heading "About" [level=4] [ref=e167]
+            - list [ref=e168]:
+              - listitem [ref=e169]:
+                - link "Marketplace" [ref=e170] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e171]:
+                - link "Mint" [ref=e172] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e173]:
+                - link "Staking" [ref=e174] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e175]:
+                - link "Governance" [ref=e176] [cursor=pointer]:
+                  - /url: "#"
+          - generic [ref=e177]:
+            - heading "Documentation" [level=4] [ref=e178]
+            - list [ref=e179]:
+              - listitem [ref=e180]:
+                - link "Documentation" [ref=e181] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e182]:
+                - link "API" [ref=e183] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e184]:
+                - link "SDK" [ref=e185] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e186]:
+                - link "Support" [ref=e187] [cursor=pointer]:
+                  - /url: "#"
+          - generic [ref=e188]:
+            - heading "Community" [level=4] [ref=e189]
+            - list [ref=e190]:
+              - listitem [ref=e191]:
+                - link "Discord" [ref=e192] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e193]:
+                - link "Twitter" [ref=e194] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e195]:
+                - link "GitHub" [ref=e196] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e197]:
+                - link "Community" [ref=e198] [cursor=pointer]:
+                  - /url: "#"
+        - paragraph [ref=e200]: © 2025 KnowTon Platform. All rights reserved.
+  - dialog "Connect a Wallet" [ref=e201]:
+    - document [ref=e202]:
+      - generic [ref=e206]:
+        - generic [ref=e207]:
+          - heading "Connect a Wallet" [level=1] [ref=e210]
+          - generic [ref=e211]:
+            - generic [ref=e213]: Popular
+            - generic [ref=e214]:
+              - button "Rainbow" [ref=e216] [cursor=pointer]:
+                - generic [ref=e218]:
+                  - img [ref=e219]:
+                    - img [ref=e220]
+                  - generic [ref=e223]: Rainbow
+              - button "Base Account" [ref=e225] [cursor=pointer]:
+                - generic [ref=e227]:
+                  - img [ref=e228]:
+                    - img [ref=e229]
+                  - generic [ref=e232]: Base Account
+              - button "MetaMask" [disabled] [ref=e234] [cursor=pointer]:
+                - generic [ref=e236]:
+                  - img [ref=e237]:
+                    - img [ref=e238]
+                  - generic [ref=e240]: MetaMask
+              - button "WalletConnect" [ref=e242] [cursor=pointer]:
+                - generic [ref=e244]:
+                  - img [ref=e245]:
+                    - img [ref=e246]
+                  - generic [ref=e249]: WalletConnect
+        - generic [ref=e251]:
+          - button "Close" [ref=e253] [cursor=pointer]:
+            - img [ref=e254]
+          - generic [ref=e260]:
+            - img [ref=e262]:
+              - img [ref=e263]
+            - generic [ref=e264]:
+              - generic [ref=e265]: Opening MetaMask...
+              - generic [ref=e267]: Confirm connection in the extension
+              - img "Loading" [ref=e270]
+```

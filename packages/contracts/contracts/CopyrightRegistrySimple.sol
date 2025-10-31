@@ -52,7 +52,7 @@ contract CopyrightRegistrySimple is
     
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
-        // For testing, we don't disable initializers
+        _disableInitializers();
     }
     
     function initialize() public initializer {

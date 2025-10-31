@@ -39,20 +39,24 @@ export function useContentUpload() {
         })
       }, 200)
 
-      // Upload to IPFS
-      const result = await contentAPI.uploadToIPFS(file)
+      // Upload file
+      const formData = new FormData()
+      formData.append('file', file)
+      const result = await contentAPI.upload(formData)
       
       clearInterval(progressInterval)
+
+      const contentHash = result.data?.contentHash || result.data?.hash || 'uploaded'
 
       setUploadState({
         isUploading: false,
         progress: 100,
         status: 'complete',
         error: null,
-        contentHash: result.contentHash,
+        contentHash,
       })
 
-      return result.contentHash
+      return contentHash
     } catch (error) {
       setUploadState({
         isUploading: false,

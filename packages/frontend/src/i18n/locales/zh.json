@@ -381,6 +381,7 @@
     "submitting": "提交中...",
     "confirmOffer": "确认出价",
     "backToDetails": "返回详情",
+    "tokenId": "Token ID",
     "realTimeConnection": "实时连接",
     "disconnected": "已断开",
     "latestPrice": "最新价格",

@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import simpleRoutes from './routes/simple.routes';
+import tradingRoutes from './routes/trading';
+import bondsRoutes from './routes/bonds';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 
@@ -14,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5177',
+  origin: process.env.CORS_ORIGIN || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
   credentials: true,
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -22,6 +24,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // API Routes
 app.use('/api/v1', simpleRoutes);
+app.use('/api/trading', tradingRoutes);
+app.use('/api/bonds', bondsRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

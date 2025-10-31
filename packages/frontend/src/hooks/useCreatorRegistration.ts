@@ -41,36 +41,20 @@ export function useCreatorRegistration() {
 
   // Upload avatar to IPFS
   const uploadAvatarToIPFS = async (file: File): Promise<string> => {
-    const result = await contentAPI.uploadToIPFS(file)
-    return result.contentHash
-  }
-
-  // Create DID using Ceramic Network
-  const createDID = async (walletAddress: string, signature: string): Promise<string> => {
-    const result = await creatorAPI.createDID({
-      address: walletAddress,
-      signature,
-    })
-    return result.did
+    const formDataToUpload = new FormData()
+    formDataToUpload.append('file', file)
+    const result = await contentAPI.upload(formDataToUpload)
+    return result.data?.contentHash || result.data?.hash || ''
   }
 
   // Register creator
-  const registerCreator = async (avatarHash: string, did: string, signature: string) => {
+  const registerCreator = async () => {
     if (!address) throw new Error('No wallet address')
     
     return await creatorAPI.register({
       address,
-      did,
       username: formData.username,
-      bio: formData.bio,
-      email: formData.email || undefined,
-      avatar: avatarHash,
-      socialLinks: {
-        twitter: formData.socialLinks.twitter || undefined,
-        discord: formData.socialLinks.discord || undefined,
-        website: formData.socialLinks.website || undefined,
-      },
-      signature,
+      bio: formData.bio || undefined,
     })
   }
 
@@ -119,23 +103,19 @@ export function useCreatorRegistration() {
         })
       }
 
-      // Step 3: Create DID
-      setRegistrationProgress({
-        step: 'creating_did',
-        progress: 60,
-        message: '正在创建 DID...',
-      })
-      const did = await createDID(address, signature)
-
-      // Step 4: Register creator
+      // Step 3: Register creator
       setRegistrationProgress({
         step: 'registering',
         progress: 80,
         message: '正在注册创作者...',
       })
-      await registerCreator(avatarHash, did, signature)
+      await registerCreator()
+      
+      // Use avatarHash and signature for future features
+      console.log('Avatar hash:', avatarHash)
+      console.log('Signature:', signature)
 
-      // Step 5: Update local state
+      // Step 4: Update local state
       setRegistrationProgress({
         step: 'complete',
         progress: 100,
@@ -144,7 +124,6 @@ export function useCreatorRegistration() {
 
       setUser({
         address,
-        did,
         username: formData.username,
         avatar: avatarHash,
       })
