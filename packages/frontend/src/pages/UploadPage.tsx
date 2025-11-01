@@ -7,17 +7,17 @@ import { useNavigate } from 'react-router-dom';
 type UploadMode = 'single' | 'batch';
 
 export const UploadPage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isConnected } = useAuth();
   const navigate = useNavigate();
   const [uploadedId, setUploadedId] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<UploadMode>('single');
 
   // Redirect if not authenticated
   React.useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isConnected) {
       navigate('/');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isConnected, navigate]);
 
   const handleUploadComplete = (uploadId: string) => {
     console.log('Upload completed:', uploadId);
@@ -52,7 +52,7 @@ export const UploadPage: React.FC = () => {
     alert(`Some uploads failed:\n${errorMessage}`);
   };
 
-  if (!isAuthenticated || !user) {
+  if (!isConnected || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -63,7 +63,7 @@ export const UploadPage: React.FC = () => {
     );
   }
 
-  const userId = user.userId || user.address || '';
+  const userId = user.address;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -173,3 +173,5 @@ export const UploadPage: React.FC = () => {
     </div>
   );
 };
+
+export default UploadPage;
