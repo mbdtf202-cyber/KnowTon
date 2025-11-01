@@ -12,13 +12,6 @@ export const UploadPage: React.FC = () => {
   const [uploadedId, setUploadedId] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<UploadMode>('single');
 
-  // Redirect if not authenticated
-  React.useEffect(() => {
-    if (!isConnected) {
-      navigate('/');
-    }
-  }, [isConnected, navigate]);
-
   const handleUploadComplete = (uploadId: string) => {
     console.log('Upload completed:', uploadId);
     setUploadedId(uploadId);
