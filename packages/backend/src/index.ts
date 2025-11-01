@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import simpleRoutes from './routes/simple.routes';
 import tradingRoutes from './routes/trading';
 import bondsRoutes from './routes/bonds';
+import paymentRoutes from './routes/payment.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 
@@ -19,6 +20,11 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
   credentials: true,
 }));
+
+// Special handling for Stripe webhooks (needs raw body)
+app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json' }));
+
+// Regular JSON parsing for other routes
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -26,6 +32,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/v1', simpleRoutes);
 app.use('/api/trading', tradingRoutes);
 app.use('/api/bonds', bondsRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

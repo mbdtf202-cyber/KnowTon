@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
+import { useTranslation } from 'react-i18next'
 import { useOrderBook } from '../hooks/useOrderBook'
 import { useNFTDetails } from '../hooks/useNFTDetails'
 import OrderBook from '../components/OrderBook'
@@ -14,6 +15,7 @@ export default function TradingPage() {
   const { tokenId } = useParams<{ tokenId: string }>()
   const navigate = useNavigate()
   const { isConnected } = useAccount()
+  const { t } = useTranslation()
   
   // If no tokenId, show NFT list for trading
   if (!tokenId) {
@@ -68,7 +70,7 @@ export default function TradingPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          返回详情
+          {t('trading.backToDetails')}
         </button>
 
         <div className="flex items-start justify-between">

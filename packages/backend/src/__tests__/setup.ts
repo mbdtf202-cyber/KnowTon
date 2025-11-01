@@ -11,13 +11,25 @@ const prisma = new PrismaClient({
 
 // Global test setup
 beforeAll(async () => {
-  // Connect to test database
-  await prisma.$connect();
+  // Skip database connection if Prisma is mocked (for unit tests)
+  if (process.env.SKIP_DB_SETUP !== 'true') {
+    try {
+      await prisma.$connect();
+    } catch (error) {
+      console.warn('Database connection failed in test setup. Skipping for mocked tests.');
+    }
+  }
 });
 
 afterAll(async () => {
-  // Clean up and disconnect
-  await prisma.$disconnect();
+  // Skip database disconnection if Prisma is mocked
+  if (process.env.SKIP_DB_SETUP !== 'true') {
+    try {
+      await prisma.$disconnect();
+    } catch (error) {
+      // Ignore disconnection errors
+    }
+  }
 });
 
 export { prisma };

@@ -1,0 +1,66 @@
+# Wrangler configuration for Cloudflare Workers
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "knowton-workers"
+main = "api-cache-worker.js"
+compatibility_date = "2024-01-01"
+
+# Account and zone configuration
+# Set these via environment variables or wrangler login
+# account_id = "your-account-id"
+# zone_id = "your-zone-id"
+
+# API Cache Worker
+[[workers]]
+name = "api-cache-worker"
+main = "api-cache-worker.js"
+compatibility_date = "2024-01-01"
+
+[[workers.routes]]
+pattern = "knowton.io/api/*"
+zone_name = "knowton.io"
+
+[[workers.routes]]
+pattern = "*.knowton.io/api/*"
+zone_name = "knowton.io"
+
+# IPFS Cache Worker
+[[workers]]
+name = "ipfs-cache-worker"
+main = "ipfs-cache-worker.js"
+compatibility_date = "2024-01-01"
+
+[[workers.routes]]
+pattern = "knowton.io/ipfs/*"
+zone_name = "knowton.io"
+
+[[workers.routes]]
+pattern = "*.knowton.io/ipfs/*"
+zone_name = "knowton.io"
+
+# Environment variables (optional)
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+# KV namespaces (optional - for advanced caching)
+# [[kv_namespaces]]
+# binding = "CACHE_KV"
+# id = "your-kv-namespace-id"
+
+# Durable Objects (optional - for distributed caching)
+# [[durable_objects.bindings]]
+# name = "CACHE_DO"
+# class_name = "CacheObject"
+# script_name = "cache-worker"
+
+# Build configuration
+[build]
+command = ""
+watch_dirs = ["cloudflare-workers"]
+
+# Limits
+[limits]
+cpu_ms = 50

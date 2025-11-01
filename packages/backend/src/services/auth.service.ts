@@ -1,492 +1,474 @@
-import { ethers } from 'ethers';
-import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
-import Redis from 'ioredis';
-import { logger } from '../utils/logger';
-import { CeramicClient } from '@ceramicnetwork/http-client';
-import { DID } from 'dids';
-import { Ed25519Provider } from 'key-did-provider-ed25519';
-import { getResolver } from 'key-did-resolver';
+import jwt from 'jsonwebtoken'
+import { verifyMessage } from 'ethers'
+import bcrypt from 'bcrypt'
+import crypto from 'crypto'
+import { PrismaClient } from '@prisma/client'
+import { emailService } from './email.service'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
-const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutes
-const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
-const CERAMIC_API_URL = process.env.CERAMIC_API_URL || 'https://ceramic-clay.3boxlabs.com';
+const prisma = new PrismaClient()
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const JWT_EXPIRY = '7d'
+const SALT_ROUNDS = 12
 
-interface SIWEMessage {
-  domain: string;
-  address: string;
-  statement: string;
-  uri: string;
-  version: string;
-  chainId: number;
-  nonce: string;
-  issuedAt: string;
-  expirationTime?: string;
-  notBefore?: string;
-  requestId?: string;
-  resources?: string[];
+interface WalletAuthPayload {
+  address: string
+  message: string
+  signature: string
+  walletType?: 'metamask' | 'walletconnect' | 'coinbase' | 'other'
 }
 
-interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+interface EmailAuthPayload {
+  email: string
+  password: string
 }
 
-interface UserSession {
-  address: string;
-  did?: string;
-  nonce: string;
-  createdAt: Date;
-  expiresAt: Date;
+interface EmailRegistrationPayload {
+  email: string
+  password: string
+  username?: string
 }
 
 export class AuthService {
-  private redis: Redis;
-  private ceramic: CeramicClient;
-
-  constructor() {
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      db: 0,
-    });
-
-    this.ceramic = new CeramicClient(CERAMIC_API_URL);
-  }
-
   /**
-   * Generate a nonce for SIWE authentication
+   * Verify wallet signature and generate JWT token
    */
-  async generateNonce(address: string): Promise<string> {
-    const nonce = uuidv4();
-    const key = `auth:nonce:${address.toLowerCase()}`;
-    
-    // Store nonce with 10 minute expiry
-    await this.redis.setex(key, 600, nonce);
-    
-    logger.info(`Generated nonce for address: ${address}`);
-    return nonce;
-  }
+  async authenticateWallet(payload: WalletAuthPayload): Promise<{ token: string; user: any }> {
+    const { address, message, signature, walletType = 'other' } = payload
 
-  /**
-   * Verify nonce exists and is valid
-   */
-  async verifyNonce(address: string, nonce: string): Promise<boolean> {
-    const key = `auth:nonce:${address.toLowerCase()}`;
-    const storedNonce = await this.redis.get(key);
-    
-    if (!storedNonce || storedNonce !== nonce) {
-      logger.warn(`Invalid nonce for address: ${address}`);
-      return false;
-    }
-    
-    // Delete nonce after verification (one-time use)
-    await this.redis.del(key);
-    return true;
-  }
-
-  /**
-   * Parse and validate SIWE message
-   */
-  parseSIWEMessage(message: string): SIWEMessage {
-    const lines = message.split('\n');
-    const parsed: any = {};
-
-    // Parse domain and address from first lines
-    parsed.domain = lines[0].trim();
-    parsed.address = lines[1].split(' ')[0].trim();
-    
-    // Parse statement
-    const statementIndex = lines.findIndex(line => line.trim() && !line.includes(':'));
-    if (statementIndex > 1) {
-      parsed.statement = lines[statementIndex].trim();
-    }
-
-    // Parse key-value pairs
-    for (const line of lines) {
-      if (line.includes(':')) {
-        const [key, ...valueParts] = line.split(':');
-        const value = valueParts.join(':').trim();
-        
-        switch (key.trim()) {
-          case 'URI':
-            parsed.uri = value;
-            break;
-          case 'Version':
-            parsed.version = value;
-            break;
-          case 'Chain ID':
-            parsed.chainId = parseInt(value);
-            break;
-          case 'Nonce':
-            parsed.nonce = value;
-            break;
-          case 'Issued At':
-            parsed.issuedAt = value;
-            break;
-          case 'Expiration Time':
-            parsed.expirationTime = value;
-            break;
-          case 'Not Before':
-            parsed.notBefore = value;
-            break;
-          case 'Request ID':
-            parsed.requestId = value;
-            break;
-        }
-      }
-    }
-
-    return parsed as SIWEMessage;
-  }
-
-  /**
-   * Verify SIWE signature
-   */
-  async verifySIWESignature(
-    message: string,
-    signature: string
-  ): Promise<{ valid: boolean; address?: string; error?: string }> {
     try {
-      // Parse SIWE message
-      const siweMessage = this.parseSIWEMessage(message);
+      // Verify the signature
+      const recoveredAddress = verifyMessage(message, signature)
       
-      // Verify nonce
-      const nonceValid = await this.verifyNonce(siweMessage.address, siweMessage.nonce);
-      if (!nonceValid) {
-        return { valid: false, error: 'Invalid or expired nonce' };
+      if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
+        throw new Error('Invalid signature')
       }
 
-      // Verify expiration
-      if (siweMessage.expirationTime) {
-        const expirationDate = new Date(siweMessage.expirationTime);
-        if (expirationDate < new Date()) {
-          return { valid: false, error: 'Message has expired' };
+      // Check if message is recent (within 5 minutes)
+      const messageMatch = message.match(/Timestamp: (.+)/)
+      if (messageMatch) {
+        const timestamp = new Date(messageMatch[1])
+        const now = new Date()
+        const diffMinutes = (now.getTime() - timestamp.getTime()) / 1000 / 60
+        
+        if (diffMinutes > 5) {
+          throw new Error('Message expired')
         }
       }
 
-      // Verify not before
-      if (siweMessage.notBefore) {
-        const notBeforeDate = new Date(siweMessage.notBefore);
-        if (notBeforeDate > new Date()) {
-          return { valid: false, error: 'Message not yet valid' };
-        }
+      // TODO: Check if user exists in database, create if not
+      const user = {
+        address: address.toLowerCase(),
+        walletType,
+        role: 'user',
+        createdAt: new Date(),
       }
 
-      // Recover address from signature
-      const recoveredAddress = ethers.verifyMessage(message, signature);
-      
-      // Verify address matches
-      if (recoveredAddress.toLowerCase() !== siweMessage.address.toLowerCase()) {
-        return { valid: false, error: 'Address mismatch' };
-      }
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          address: user.address,
+          walletType: user.walletType,
+          role: user.role,
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRY }
+      )
 
-      logger.info(`SIWE signature verified for address: ${recoveredAddress}`);
-      return { valid: true, address: recoveredAddress };
+      return { token, user }
     } catch (error) {
-      logger.error('SIWE signature verification failed:', error);
-      return { valid: false, error: 'Signature verification failed' };
+      console.error('Wallet authentication error:', error)
+      throw new Error('Authentication failed')
     }
   }
 
   /**
-   * Generate JWT access and refresh tokens
+   * Verify JWT token
    */
-  generateTokens(address: string, did?: string): AuthTokens {
-    const payload = {
-      address: address.toLowerCase(),
-      did,
-      type: 'access',
-    };
+  verifyToken(token: string): any {
+    try {
+      return jwt.verify(token, JWT_SECRET)
+    } catch (error) {
+      throw new Error('Invalid token')
+    }
+  }
 
-    const accessToken = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: ACCESS_TOKEN_EXPIRY,
-      issuer: 'knowton-platform',
-      subject: address.toLowerCase(),
-    });
+  /**
+   * Generate nonce for wallet authentication
+   */
+  generateNonce(address: string): string {
+    return `Sign in to KnowTon\n\nAddress: ${address}\nTimestamp: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`
+  }
 
-    const refreshPayload = {
-      address: address.toLowerCase(),
-      type: 'refresh',
-      jti: uuidv4(), // Unique token ID for revocation
-    };
+  /**
+   * Refresh JWT token
+   */
+  refreshToken(oldToken: string): string {
+    const decoded = this.verifyToken(oldToken)
+    
+    const newToken = jwt.sign(
+      {
+        address: decoded.address,
+        walletType: decoded.walletType,
+        role: decoded.role,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    )
 
-    const refreshToken = jwt.sign(refreshPayload, JWT_REFRESH_SECRET, {
-      expiresIn: REFRESH_TOKEN_EXPIRY,
-      issuer: 'knowton-platform',
-      subject: address.toLowerCase(),
-    });
+    return newToken
+  }
 
-    // Store refresh token in Redis
-    const refreshKey = `auth:refresh:${address.toLowerCase()}:${refreshPayload.jti}`;
-    this.redis.setex(refreshKey, 7 * 24 * 60 * 60, refreshToken); // 7 days
+  /**
+   * Email/password registration
+   */
+  async registerWithEmail(payload: EmailRegistrationPayload): Promise<{ user: any; message: string }> {
+    const { email, password, username } = payload
 
-    logger.info(`Generated tokens for address: ${address}`);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format')
+    }
+
+    // Validate password strength (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+    if (password.length < 8) {
+      throw new Error('Password must be at least 8 characters long')
+    }
+    if (!/[A-Z]/.test(password)) {
+      throw new Error('Password must contain at least one uppercase letter')
+    }
+    if (!/[a-z]/.test(password)) {
+      throw new Error('Password must contain at least one lowercase letter')
+    }
+    if (!/[0-9]/.test(password)) {
+      throw new Error('Password must contain at least one number')
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (existingUser) {
+      throw new Error('Email already registered')
+    }
+
+    // Check if username already exists (if provided)
+    if (username) {
+      const existingUsername = await prisma.user.findUnique({
+        where: { username },
+      })
+
+      if (existingUsername) {
+        throw new Error('Username already taken')
+      }
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
+
+    // Generate email verification token
+    const verifyToken = crypto.randomBytes(32).toString('hex')
+    const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        username,
+        emailVerifyToken: verifyToken,
+        emailVerifyExpiry: verifyExpiry,
+        isEmailVerified: false,
+        role: 'user',
+      },
+    })
+
+    // Send verification email
+    try {
+      await emailService.sendVerificationEmail(email, verifyToken)
+    } catch (error) {
+      console.error('Failed to send verification email:', error)
+      // Don't fail registration if email fails
+    }
 
     return {
-      accessToken,
-      refreshToken,
-      expiresIn: 900, // 15 minutes in seconds
-    };
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+      },
+      message: 'Registration successful. Please check your email to verify your account.',
+    }
   }
 
   /**
-   * Verify JWT access token
+   * Verify email with token
    */
-  verifyAccessToken(token: string): { valid: boolean; payload?: any; error?: string } {
+  async verifyEmail(token: string): Promise<{ user: any; token: string }> {
+    const user = await prisma.user.findUnique({
+      where: { emailVerifyToken: token },
+    })
+
+    if (!user) {
+      throw new Error('Invalid verification token')
+    }
+
+    if (user.isEmailVerified) {
+      throw new Error('Email already verified')
+    }
+
+    if (!user.emailVerifyExpiry || user.emailVerifyExpiry < new Date()) {
+      throw new Error('Verification token expired')
+    }
+
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        emailVerifyToken: null,
+        emailVerifyExpiry: null,
+      },
+    })
+
+    // Send welcome email
     try {
-      const payload = jwt.verify(token, JWT_SECRET, {
-        issuer: 'knowton-platform',
-      });
-
-      if (typeof payload === 'object' && payload.type === 'access') {
-        return { valid: true, payload };
-      }
-
-      return { valid: false, error: 'Invalid token type' };
+      await emailService.sendWelcomeEmail(updatedUser.email!, updatedUser.username || undefined)
     } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        return { valid: false, error: 'Token expired' };
-      }
-      if (error instanceof jwt.JsonWebTokenError) {
-        return { valid: false, error: 'Invalid token' };
-      }
-      return { valid: false, error: 'Token verification failed' };
+      console.error('Failed to send welcome email:', error)
+    }
+
+    // Generate JWT token
+    const jwtToken = jwt.sign(
+      {
+        userId: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    )
+
+    return {
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        username: updatedUser.username,
+        role: updatedUser.role,
+        isEmailVerified: updatedUser.isEmailVerified,
+      },
+      token: jwtToken,
     }
   }
 
   /**
-   * Refresh access token using refresh token
+   * Email/password authentication (for Web2 users)
    */
-  async refreshAccessToken(refreshToken: string): Promise<{ success: boolean; tokens?: AuthTokens; error?: string }> {
+  async authenticateEmail(payload: EmailAuthPayload): Promise<{ token: string; user: any }> {
+    const { email, password } = payload
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (!user || !user.password) {
+      throw new Error('Invalid email or password')
+    }
+
+    if (!user.isActive) {
+      throw new Error('Account is deactivated')
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+
+    if (!isPasswordValid) {
+      throw new Error('Invalid email or password')
+    }
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    })
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    )
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        walletAddress: user.walletAddress,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+      },
+    }
+  }
+
+  /**
+   * Request password reset
+   */
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (!user) {
+      // Don't reveal if email exists
+      return { message: 'If the email exists, a reset link has been sent.' }
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+
+    // Update user with reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken,
+        resetTokenExpiry,
+      },
+    })
+
+    // Send reset email
     try {
-      // Verify refresh token
-      const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET, {
-        issuer: 'knowton-platform',
-      }) as any;
-
-      if (payload.type !== 'refresh') {
-        return { success: false, error: 'Invalid token type' };
-      }
-
-      // Check if refresh token exists in Redis (not revoked)
-      const refreshKey = `auth:refresh:${payload.address}:${payload.jti}`;
-      const storedToken = await this.redis.get(refreshKey);
-
-      if (!storedToken) {
-        return { success: false, error: 'Refresh token revoked or expired' };
-      }
-
-      // Get user's DID if exists
-      const did = await this.getUserDID(payload.address);
-
-      // Generate new tokens
-      const tokens = this.generateTokens(payload.address, did);
-
-      // Revoke old refresh token
-      await this.redis.del(refreshKey);
-
-      logger.info(`Refreshed tokens for address: ${payload.address}`);
-
-      return { success: true, tokens };
+      await emailService.sendPasswordResetEmail(email, resetToken)
     } catch (error) {
-      logger.error('Token refresh failed:', error);
-      if (error instanceof jwt.TokenExpiredError) {
-        return { success: false, error: 'Refresh token expired' };
-      }
-      return { success: false, error: 'Token refresh failed' };
+      console.error('Failed to send password reset email:', error)
+      throw new Error('Failed to send password reset email')
+    }
+
+    return { message: 'If the email exists, a reset link has been sent.' }
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const user = await prisma.user.findUnique({
+      where: { resetToken: token },
+    })
+
+    if (!user) {
+      throw new Error('Invalid reset token')
+    }
+
+    if (!user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      throw new Error('Reset token expired')
+    }
+
+    // Validate new password
+    if (newPassword.length < 8) {
+      throw new Error('Password must be at least 8 characters long')
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one uppercase letter')
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one lowercase letter')
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      throw new Error('Password must contain at least one number')
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS)
+
+    // Update user
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    })
+
+    return { message: 'Password reset successful' }
+  }
+
+  /**
+   * Link wallet address to existing email account
+   */
+  async linkWalletToEmail(userId: string, walletAddress: string): Promise<{ user: any }> {
+    // Check if wallet is already linked to another account
+    const existingWallet = await prisma.user.findUnique({
+      where: { walletAddress: walletAddress.toLowerCase() },
+    })
+
+    if (existingWallet && existingWallet.id !== userId) {
+      throw new Error('Wallet already linked to another account')
+    }
+
+    // Update user
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        walletAddress: walletAddress.toLowerCase(),
+      },
+    })
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        walletAddress: user.walletAddress,
+        role: user.role,
+      },
     }
   }
 
   /**
-   * Revoke refresh token (logout)
+   * Resend verification email
    */
-  async revokeRefreshToken(refreshToken: string): Promise<boolean> {
-    try {
-      const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as any;
-      const refreshKey = `auth:refresh:${payload.address}:${payload.jti}`;
-      
-      await this.redis.del(refreshKey);
-      logger.info(`Revoked refresh token for address: ${payload.address}`);
-      
-      return true;
-    } catch (error) {
-      logger.error('Token revocation failed:', error);
-      return false;
-    }
-  }
+  async resendVerificationEmail(email: string): Promise<{ message: string }> {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
 
-  /**
-   * Revoke all refresh tokens for a user (logout from all devices)
-   */
-  async revokeAllRefreshTokens(address: string): Promise<boolean> {
-    try {
-      const pattern = `auth:refresh:${address.toLowerCase()}:*`;
-      const keys = await this.redis.keys(pattern);
-      
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
-      }
-      
-      logger.info(`Revoked all refresh tokens for address: ${address}`);
-      return true;
-    } catch (error) {
-      logger.error('Bulk token revocation failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Create or resolve DID using Ceramic Network
-   */
-  async createOrResolveDID(address: string): Promise<string> {
-    try {
-      // Check if DID already exists in cache
-      const cachedDID = await this.getUserDID(address);
-      if (cachedDID) {
-        return cachedDID;
-      }
-
-      // For production, you would use proper DID creation with user's wallet
-      // This is a simplified version using a deterministic DID
-      const seed = ethers.keccak256(ethers.toUtf8Bytes(address.toLowerCase()));
-      const seedBytes = ethers.getBytes(seed).slice(0, 32);
-      
-      const provider = new Ed25519Provider(seedBytes);
-      const did = new DID({ provider, resolver: getResolver() });
-      
-      await did.authenticate();
-      
-      const didString = did.id;
-      
-      // Cache DID
-      await this.setUserDID(address, didString);
-      
-      logger.info(`Created DID for address ${address}: ${didString}`);
-      return didString;
-    } catch (error) {
-      logger.error('DID creation failed:', error);
-      throw new Error('Failed to create DID');
-    }
-  }
-
-  /**
-   * Resolve DID to get profile information
-   */
-  async resolveDID(did: string): Promise<any> {
-    try {
-      // In production, query Ceramic for DID document
-      // This is a placeholder implementation
-      const didKey = `auth:did:${did}`;
-      const profile = await this.redis.get(didKey);
-      
-      if (profile) {
-        return JSON.parse(profile);
-      }
-      
-      return null;
-    } catch (error) {
-      logger.error('DID resolution failed:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Store user's DID in cache
-   */
-  private async setUserDID(address: string, did: string): Promise<void> {
-    const key = `auth:address:did:${address.toLowerCase()}`;
-    await this.redis.set(key, did);
-  }
-
-  /**
-   * Get user's DID from cache
-   */
-  private async getUserDID(address: string): Promise<string | null> {
-    const key = `auth:address:did:${address.toLowerCase()}`;
-    return await this.redis.get(key);
-  }
-
-  /**
-   * Create user session
-   */
-  async createSession(address: string, did?: string): Promise<UserSession> {
-    const session: UserSession = {
-      address: address.toLowerCase(),
-      did,
-      nonce: uuidv4(),
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-    };
-
-    const sessionKey = `auth:session:${address.toLowerCase()}`;
-    await this.redis.setex(sessionKey, 24 * 60 * 60, JSON.stringify(session));
-
-    return session;
-  }
-
-  /**
-   * Get user session
-   */
-  async getSession(address: string): Promise<UserSession | null> {
-    const sessionKey = `auth:session:${address.toLowerCase()}`;
-    const sessionData = await this.redis.get(sessionKey);
-
-    if (!sessionData) {
-      return null;
+    if (!user) {
+      throw new Error('User not found')
     }
 
-    return JSON.parse(sessionData);
-  }
-
-  /**
-   * Delete user session
-   */
-  async deleteSession(address: string): Promise<void> {
-    const sessionKey = `auth:session:${address.toLowerCase()}`;
-    await this.redis.del(sessionKey);
-  }
-
-  /**
-   * Complete authentication flow
-   */
-  async authenticate(message: string, signature: string): Promise<{
-    success: boolean;
-    tokens?: AuthTokens;
-    did?: string;
-    error?: string;
-  }> {
-    try {
-      // Verify SIWE signature
-      const verification = await this.verifySIWESignature(message, signature);
-      
-      if (!verification.valid || !verification.address) {
-        return { success: false, error: verification.error };
-      }
-
-      // Create or resolve DID
-      const did = await this.createOrResolveDID(verification.address);
-
-      // Generate tokens
-      const tokens = this.generateTokens(verification.address, did);
-
-      // Create session
-      await this.createSession(verification.address, did);
-
-      return {
-        success: true,
-        tokens,
-        did,
-      };
-    } catch (error) {
-      logger.error('Authentication failed:', error);
-      return { success: false, error: 'Authentication failed' };
+    if (user.isEmailVerified) {
+      throw new Error('Email already verified')
     }
+
+    // Generate new verification token
+    const verifyToken = crypto.randomBytes(32).toString('hex')
+    const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+    // Update user
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerifyToken: verifyToken,
+        emailVerifyExpiry: verifyExpiry,
+      },
+    })
+
+    // Send verification email
+    await emailService.sendVerificationEmail(email, verifyToken)
+
+    return { message: 'Verification email sent' }
   }
 }
 
-export const authService = new AuthService();
+export const authService = new AuthService()

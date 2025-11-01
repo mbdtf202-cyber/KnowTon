@@ -12,6 +12,9 @@ from src.models.schemas import (
     FingerprintResponse,
     SimilarityRequest,
     SimilarityResponse,
+    SimilaritySearchRequest,
+    SimilaritySearchResponse,
+    SimilarContentItem,
     ValuationRequest,
     ValuationResponse,
     RecommendationRequest,
@@ -122,6 +125,82 @@ async def detect_similarity(request: SimilarityRequest):
         return result
     except Exception as e:
         logger.error("Similarity detection failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/oracle/similarity/search", response_model=SimilaritySearchResponse)
+async def search_similar_content(request: SimilaritySearchRequest):
+    """Search for similar content in the database with pagination"""
+    try:
+        start_time = time.time()
+        
+        logger.info(
+            "Searching for similar content",
+            content_type=request.content_type,
+            threshold=request.threshold,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        
+        # Generate fingerprint for the query content
+        fingerprint_response = await fingerprint_service.generate_fingerprint(
+            request.content_url,
+            request.content_type,
+            use_cache=True,
+        )
+        
+        # Search for similar content with pagination
+        # Get more results than needed to handle pagination
+        search_limit = request.limit + request.offset + 50  # Buffer for pagination
+        similar_results = await fingerprint_service.search_similar_content(
+            request.content_url,
+            request.content_type,
+            threshold=request.threshold,
+            limit=search_limit,
+        )
+        
+        # Apply pagination
+        total_results = len(similar_results)
+        paginated_results = similar_results[request.offset:request.offset + request.limit]
+        
+        # Convert to response format
+        results = []
+        for item in paginated_results:
+            results.append(
+                SimilarContentItem(
+                    content_id=item["content_id"],
+                    similarity_score=item["similarity_score"],
+                    content_type=item.get("content_type"),
+                    metadata_uri=item.get("metadata_uri"),
+                    timestamp=item.get("timestamp"),
+                    metadata=item.get("metadata", {}),
+                )
+            )
+        
+        processing_time = (time.time() - start_time) * 1000
+        
+        # Calculate pagination info
+        has_next = (request.offset + request.limit) < total_results
+        has_prev = request.offset > 0
+        
+        return SimilaritySearchResponse(
+            query_fingerprint=fingerprint_response.fingerprint,
+            total_results=total_results,
+            results=results,
+            threshold_used=request.threshold,
+            processing_time_ms=processing_time,
+            pagination={
+                "offset": request.offset,
+                "limit": request.limit,
+                "has_next": has_next,
+                "has_prev": has_prev,
+                "next_offset": request.offset + request.limit if has_next else None,
+                "prev_offset": max(0, request.offset - request.limit) if has_prev else None,
+            },
+        )
+        
+    except Exception as e:
+        logger.error("Similarity search failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 

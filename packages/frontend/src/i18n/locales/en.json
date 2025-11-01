@@ -160,7 +160,21 @@
     "placeOrder": "Place Order",
     "cancelOrder": "Cancel Order",
     "orderPlaced": "Order placed successfully!",
-    "orderCancelled": "Order cancelled"
+    "orderCancelled": "Order cancelled",
+    "backToDetails": "Back to Details",
+    "realTimeConnected": "Real-time Connected",
+    "disconnected": "Disconnected",
+    "latestPrice": "Latest Price",
+    "high24h": "24h High",
+    "low24h": "24h Low",
+    "volume24h": "24h Volume",
+    "trades24h": "24h Trades",
+    "depthChart": "Depth Chart",
+    "depthChartInDevelopment": "Depth chart feature in development",
+    "myOrders": "My Orders",
+    "noActiveOrders": "No active orders",
+    "verified": "Verified",
+    "creator": "Creator"
   },
   "fractionalize": {
     "title": "Fractionalize NFT",
@@ -195,7 +209,31 @@
     "unstaking": "Unstaking...",
     "claiming": "Claiming...",
     "success": "Operation successful!",
-    "error": "Operation failed"
+    "error": "Operation failed",
+    "whatIsStaking": "What is Staking?",
+    "stakingDescription": "Staking is the process of locking your KNOW tokens in a smart contract to support network security and governance, while earning rewards.",
+    "revenueFrom": "Staking rewards come from:",
+    "tradingFees": "Platform trading fee share",
+    "protocolRevenue": "Protocol revenue distribution",
+    "inflationRewards": "Inflation rewards",
+    "governanceRewards": "Governance participation rewards",
+    "stakingBenefits": "Staking Benefits",
+    "passiveIncome": "Passive Income",
+    "passiveIncomeDesc": "Continuously earn staking rewards",
+    "governancePower": "Governance Power",
+    "governancePowerDesc": "Participate in platform decision voting",
+    "lockBonus": "Lock Bonus",
+    "lockBonusDesc": "Longer lock periods earn higher yields",
+    "compoundGrowth": "Compound Growth",
+    "compoundGrowthDesc": "Rewards can be re-staked",
+    "riskWarning": "Risk Warning",
+    "riskWarningItems": {
+      "smartContract": "Staked tokens are subject to smart contract risks",
+      "lockPeriod": "Tokens cannot be transferred during lock period",
+      "apyFluctuation": "APY fluctuates based on market conditions",
+      "readTerms": "Please read terms carefully before staking"
+    },
+    "viewFAQ": "View FAQ"
   },
   "governance": {
     "title": "Governance",
@@ -277,7 +315,11 @@
     "selectNetwork": "Select Network",
     "networkTip": "Switching networks may take a few seconds",
     "balance": "Balance",
-    "address": "Address"
+    "address": "Address",
+    "currentWallet": "Current Wallet",
+    "switchTo": "Switch to another wallet",
+    "ready": "Ready",
+    "notInstalled": "Not installed"
   },
   "transaction": {
     "pending": "Transaction Pending",

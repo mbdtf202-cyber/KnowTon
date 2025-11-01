@@ -1,514 +1,427 @@
-# KnowTon Platform - 快速部署指南
-
-## 📋 前置要求
-
-### 必需工具
-- Node.js 20+
-- Docker & Docker Compose
-- Kubernetes (kubectl)
-- Hardhat
-- Python 3.10+
-- Go 1.21+
-
-### 必需账户
-- Arbitrum Sepolia 测试网账户（带测试 ETH）
-- Alchemy/Infura API Key
-- Pinata IPFS API Key（可选）
-
----
+# KnowTon Platform - 部署指南
 
 ## 🚀 快速开始
 
-### 1. 克隆项目
+### 方式一：全面部署（推荐）
+
+完整部署包括智能合约、所有服务和基础设施：
 
 ```bash
-git clone https://github.com/knowton/platform.git
-cd platform
+./scripts/full-deployment.sh
 ```
 
-### 2. 安装依赖
+这个脚本会：
+1. ✅ 检查环境和依赖
+2. ✅ 安装所有 npm 包
+3. ✅ 启动数据库和基础设施
+4. ✅ 部署智能合约（本地或测试网）
+5. ✅ 构建并启动所有服务
+6. ✅ 生成部署报告
+
+**预计时间**: 10-15 分钟
+
+### 方式二：快速部署（开发环境）
+
+仅启动本地开发环境：
 
 ```bash
-# 安装所有依赖
-npm install
-
-# 安装 Python 依赖（Oracle Adapter）
-cd packages/oracle-adapter
-pip install -r requirements.txt
-cd ../..
-
-# 安装 Go 依赖（Bonding Service）
-cd packages/bonding-service
-go mod download
-cd ../..
+./scripts/quick-deploy.sh
 ```
 
-### 3. 配置环境变量
+这个脚本会：
+1. ✅ 安装依赖
+2. ✅ 启动基础设施（PostgreSQL, MongoDB, Redis）
+3. ✅ 启动本地区块链
+4. ✅ 部署合约到本地网络
+5. ✅ 启动前端和后端
 
+**预计时间**: 3-5 分钟
+
+## 📋 前置要求
+
+### 必需软件
+
+- **Node.js** >= 18.0.0
+- **npm** >= 9.0.0
+- **Docker** >= 20.10.0
+- **Docker Compose** >= 2.0.0
+
+### 可选软件
+
+- **Git** (用于版本控制)
+- **MetaMask** (用于测试 DApp)
+
+### 环境配置
+
+1. 复制环境变量模板：
 ```bash
-# 复制环境变量模板
 cp .env.example .env
-cp packages/contracts/.env.example packages/contracts/.env
-cp packages/backend/.env.example packages/backend/.env
-cp packages/frontend/.env.example packages/frontend/.env
-cp packages/oracle-adapter/.env.example packages/oracle-adapter/.env
-cp packages/bonding-service/.env.example packages/bonding-service/.env
 ```
 
-**编辑 `.env` 文件，填入必要的配置**:
-
-```env
-# Blockchain
-ARBITRUM_RPC_URL=https://arb-sepolia.g.alchemy.com/v2/YOUR_API_KEY
-PRIVATE_KEY=your_private_key_here
-
-# IPFS
-PINATA_API_KEY=your_pinata_api_key
-PINATA_SECRET_KEY=your_pinata_secret
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/knowton
-MONGODB_URI=mongodb://localhost:27017/knowton
-REDIS_URL=redis://localhost:6379
-
-# Services
-ORACLE_ADAPTER_URL=http://localhost:8000
-BONDING_SERVICE_URL=localhost:50051
+2. 编辑 `.env` 文件，填入必要的配置：
+```bash
+# 对于本地开发，可以保持默认值
+# 对于测试网部署，需要填入：
+PRIVATE_KEY=你的钱包私钥
+ARBISCAN_API_KEY=你的Arbiscan API密钥
 ```
 
-### 4. 启动本地开发环境
+## 🔧 部署选项
+
+### 选项 1: 本地开发网络
+
+使用 Hardhat 本地网络（无需真实 ETH）：
 
 ```bash
-# 启动所有数据库和服务
-docker-compose up -d
+# 使用全面部署脚本（不设置 PRIVATE_KEY）
+./scripts/full-deployment.sh
 
-# 等待服务启动（约 30 秒）
-sleep 30
-
-# 检查服务状态
-docker-compose ps
+# 或使用快速部署
+./scripts/quick-deploy.sh
 ```
 
-### 5. 部署智能合约
+**优点**:
+- ✅ 无需真实资金
+- ✅ 快速部署和测试
+- ✅ 完全控制区块链状态
+
+**缺点**:
+- ❌ 仅限本地访问
+- ❌ 重启后数据丢失
+
+### 选项 2: Arbitrum Sepolia 测试网
+
+部署到公共测试网：
+
+```bash
+# 1. 获取测试网 ETH
+# 访问: https://faucet.quicknode.com/arbitrum/sepolia
+
+# 2. 配置私钥
+echo "PRIVATE_KEY=0x你的私钥" >> .env
+
+# 3. 运行部署
+./scripts/full-deployment.sh
+```
+
+**优点**:
+- ✅ 真实的网络环境
+- ✅ 可以公开访问
+- ✅ 与其他测试网服务集成
+
+**缺点**:
+- ❌ 需要测试网 ETH
+- ❌ 部署较慢（需要等待区块确认）
+
+### 选项 3: Docker Compose 完整栈
+
+使用 Docker Compose 运行所有服务：
+
+```bash
+# 启动所有服务
+docker-compose -f docker-compose.simple.yml up -d
+
+# 查看日志
+docker-compose -f docker-compose.simple.yml logs -f
+
+# 停止服务
+docker-compose -f docker-compose.simple.yml down
+```
+
+## 📊 验证部署
+
+运行验证脚本检查所有服务状态：
+
+```bash
+./scripts/verify-deployment.sh
+```
+
+输出示例：
+```
+🔍 验证 KnowTon Platform 部署状态
+
+Docker 服务:
+检查 PostgreSQL (端口 5432)... ✓
+检查 MongoDB (端口 27017)... ✓
+检查 Redis (端口 6379)... ✓
+
+应用服务:
+检查 后端 API... ✓
+检查 前端应用... ✓
+检查 Hardhat 节点... ✓
+
+智能合约:
+✓ 合约已部署
+```
+
+## 🌐 访问服务
+
+部署完成后，可以访问以下服务：
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| 前端应用 | http://localhost:5173 | React DApp |
+| 后端 API | http://localhost:3000 | REST API |
+| API 文档 | http://localhost:3000/api-docs | Swagger UI |
+| Grafana | http://localhost:3001 | 监控面板 (admin/admin) |
+| Prometheus | http://localhost:9090 | 指标收集 |
+| Hardhat 节点 | http://localhost:8545 | 本地区块链 RPC |
+
+## 🔍 查看合约地址
+
+部署完成后，合约地址保存在 `deployed-contracts.json`：
+
+```bash
+cat deployed-contracts.json
+```
+
+输出示例：
+```json
+{
+  "network": "localhost",
+  "chainId": 31337,
+  "contracts": {
+    "CopyrightRegistry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "GovernanceToken": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "IPBond": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "MockERC20": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "FractionalToken": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+  }
+}
+```
+
+## 🛠️ 常用命令
+
+### 查看日志
+
+```bash
+# 查看所有服务日志
+docker-compose -f docker-compose.simple.yml logs -f
+
+# 查看特定服务日志
+docker-compose -f docker-compose.simple.yml logs -f backend
+
+# 查看 Hardhat 节点日志
+tail -f hardhat-node.log
+
+# 查看后端日志
+tail -f backend.log
+
+# 查看前端日志
+tail -f frontend.log
+```
+
+### 重启服务
+
+```bash
+# 重启所有 Docker 服务
+docker-compose -f docker-compose.simple.yml restart
+
+# 重启特定服务
+docker-compose -f docker-compose.simple.yml restart backend
+
+# 重启前端（如果使用 quick-deploy）
+kill $(cat frontend.pid)
+cd packages/frontend && npm run dev &
+```
+
+### 停止服务
+
+```bash
+# 使用停止脚本（推荐）
+./scripts/stop-services.sh
+
+# 或手动停止 Docker
+docker-compose -f docker-compose.simple.yml down
+
+# 停止并删除数据卷
+docker-compose -f docker-compose.simple.yml down -v
+```
+
+### 清理环境
+
+```bash
+# 停止所有服务
+./scripts/stop-services.sh
+
+# 清理 Docker 资源
+docker-compose -f docker-compose.simple.yml down -v
+docker system prune -f
+
+# 清理 node_modules
+npm run clean
+
+# 清理日志文件
+rm -f *.log *.pid
+```
+
+## 🧪 测试部署
+
+### 1. 测试后端 API
+
+```bash
+# 健康检查
+curl http://localhost:3000/health
+
+# 获取 NFT 列表
+curl http://localhost:3000/api/nfts
+```
+
+### 2. 测试智能合约
 
 ```bash
 cd packages/contracts
 
-# 编译合约
+# 运行测试
+npm test
+
+# 运行特定测试
+npx hardhat test test/CopyrightRegistry.test.ts
+```
+
+### 3. 测试前端
+
+访问 http://localhost:5173 并：
+1. 连接 MetaMask 钱包
+2. 切换到本地网络（Chain ID: 31337）
+3. 导入测试账户（使用 Hardhat 默认私钥）
+4. 测试 NFT 铸造功能
+
+### 4. 运行 E2E 测试
+
+```bash
+# 运行所有 E2E 测试
+npm run test:e2e
+
+# 运行特定测试
+npm run test:e2e -- nft-minting.spec.ts
+
+# 以 UI 模式运行
+npm run test:e2e:ui
+```
+
+## 🐛 故障排除
+
+### 问题 1: 端口已被占用
+
+```bash
+# 查找占用端口的进程
+lsof -i :5173  # 前端
+lsof -i :3000  # 后端
+lsof -i :8545  # Hardhat
+
+# 杀死进程
+kill -9 <PID>
+```
+
+### 问题 2: Docker 容器无法启动
+
+```bash
+# 查看容器日志
+docker-compose -f docker-compose.simple.yml logs postgres
+
+# 重新创建容器
+docker-compose -f docker-compose.simple.yml up -d --force-recreate postgres
+```
+
+### 问题 3: 合约部署失败
+
+```bash
+# 检查 Hardhat 配置
+cd packages/contracts
+cat hardhat.config.ts
+
+# 清理缓存并重新编译
+npx hardhat clean
 npx hardhat compile
 
-# 部署到 Arbitrum Sepolia 测试网
-npx hardhat run scripts/deploy.ts --network arbitrumSepolia
-
-# 记录输出的合约地址！
+# 重新部署
+npm run deploy:local
 ```
 
-**示例输出**:
-```
-CopyrightRegistry deployed to: 0x1234...
-RoyaltyDistributor deployed to: 0x5678...
-FractionalizationVault deployed to: 0x9abc...
-...
-```
-
-### 6. 更新配置文件
-
-**更新前端配置** (`packages/frontend/.env`):
-```env
-VITE_COPYRIGHT_REGISTRY_ADDRESS=0x1234...
-VITE_ROYALTY_DISTRIBUTOR_ADDRESS=0x5678...
-VITE_FRACTIONALIZATION_VAULT_ADDRESS=0x9abc...
-# ... 其他合约地址
-```
-
-**更新后端配置** (`packages/backend/.env`):
-```env
-COPYRIGHT_REGISTRY_ADDRESS=0x1234...
-ROYALTY_DISTRIBUTOR_ADDRESS=0x5678...
-# ... 其他合约地址
-```
-
-### 7. 运行数据库迁移
+### 问题 4: 前端无法连接后端
 
 ```bash
-# PostgreSQL 迁移
-cd packages/backend
-npx prisma migrate deploy
-npx prisma generate
-
-# ClickHouse 初始化
-docker exec -it knowton-clickhouse clickhouse-client < scripts/init-clickhouse.sql
-
-# MongoDB 初始化
-docker exec -it knowton-mongodb mongosh < scripts/init-mongodb.js
-```
-
-### 8. 启动所有服务
-
-```bash
-# 启动后端服务
-cd packages/backend
-npm run dev &
-
-# 启动前端
-cd packages/frontend
-npm run dev &
-
-# 启动 Oracle Adapter
-cd packages/oracle-adapter
-uvicorn src.main:app --reload --port 8000 &
-
-# 启动 Bonding Service
-cd packages/bonding-service
-make run &
-```
-
-### 9. 访问应用
-
-- **前端 DApp**: http://localhost:5173
-- **后端 API**: http://localhost:3000
-- **Oracle Adapter**: http://localhost:8000
-- **Bonding Service**: localhost:50051 (gRPC)
-
----
-
-## 🧪 测试部署
-
-### 1. 健康检查
-
-```bash
-# 检查后端
+# 检查后端是否运行
 curl http://localhost:3000/health
 
-# 检查 Oracle Adapter
-curl http://localhost:8000/health
+# 检查 CORS 配置
+grep CORS_ORIGIN .env
 
-# 检查数据库连接
-docker-compose exec postgres pg_isready
-docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
-docker-compose exec redis redis-cli ping
+# 重启后端
+docker-compose -f docker-compose.simple.yml restart backend
 ```
 
-### 2. 测试 NFT 铸造流程
+### 问题 5: MetaMask 连接问题
 
-1. 打开前端: http://localhost:5173
-2. 连接 MetaMask 钱包（切换到 Arbitrum Sepolia）
-3. 导航到 "Mint" 页面
-4. 上传内容并填写元数据
-5. 点击 "Mint NFT"
-6. 确认交易
+1. 确保 MetaMask 连接到正确的网络
+2. 重置 MetaMask 账户（设置 -> 高级 -> 重置账户）
+3. 清除浏览器缓存
+4. 重新导入账户
 
-### 3. 测试 AI 服务
+## 📚 更多资源
 
-```bash
-# 测试内容指纹生成
-curl -X POST http://localhost:8000/api/v1/oracle/fingerprint \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content_url": "https://example.com/image.jpg",
-    "content_type": "image",
-    "metadata": {}
-  }'
+### 文档
 
-# 测试估值服务
-curl -X POST http://localhost:8000/api/v1/oracle/valuation \
-  -H "Content-Type: application/json" \
-  -d '{
-    "token_id": "1",
-    "metadata": {
-      "category": "music",
-      "creator": "0x1234...",
-      "views": 1000,
-      "likes": 100
-    }
-  }'
-```
+- [README.md](./README.md) - 项目概述
+- [CONTRIBUTING.md](./CONTRIBUTING.md) - 贡献指南
+- [packages/contracts/DEPLOYMENT.md](./packages/contracts/DEPLOYMENT.md) - 合约部署详细说明
+
+### 脚本
+
+- `scripts/full-deployment.sh` - 完整部署脚本
+- `scripts/quick-deploy.sh` - 快速部署脚本
+- `scripts/stop-services.sh` - 停止所有服务
+- `scripts/verify-deployment.sh` - 验证部署状态
+
+### 配置文件
+
+- `.env` - 环境变量
+- `docker-compose.simple.yml` - Docker Compose 配置
+- `packages/contracts/hardhat.config.ts` - Hardhat 配置
+
+## 🎯 下一步
+
+部署完成后，你可以：
+
+1. **开发新功能**
+   - 修改智能合约
+   - 添加新的 API 端点
+   - 改进前端 UI
+
+2. **运行测试**
+   - 单元测试: `npm test`
+   - 集成测试: `npm run test:integration`
+   - E2E 测试: `npm run test:e2e`
+
+3. **部署到测试网**
+   - 获取测试网 ETH
+   - 配置私钥和 API 密钥
+   - 运行 `./scripts/full-deployment.sh`
+
+4. **监控和优化**
+   - 查看 Grafana 面板
+   - 分析性能指标
+   - 优化数据库查询
+
+## 💡 提示
+
+- 首次部署建议使用本地网络进行测试
+- 定期备份 `.env` 文件（不要提交到 Git）
+- 使用 `./scripts/verify-deployment.sh` 检查服务状态
+- 查看日志文件排查问题
+- 加入我们的社区获取帮助
+
+## 🤝 获取帮助
+
+如果遇到问题：
+
+1. 查看本文档的故障排除部分
+2. 检查日志文件
+3. 运行验证脚本
+4. 查看 GitHub Issues
+5. 联系开发团队
 
 ---
 
-## 🐳 Docker 部署
-
-### 构建所有镜像
-
-```bash
-# 构建后端
-docker build -t knowton/backend:latest packages/backend
-
-# 构建前端
-docker build -t knowton/frontend:latest packages/frontend
-
-# 构建 Oracle Adapter
-docker build -t knowton/oracle-adapter:latest packages/oracle-adapter
-
-# 构建 Bonding Service
-docker build -t knowton/bonding-service:latest packages/bonding-service
-```
-
-### 使用 Docker Compose 部署
-
-```bash
-# 启动所有服务
-docker-compose -f docker-compose.yml up -d
-
-# 查看日志
-docker-compose logs -f
-
-# 停止所有服务
-docker-compose down
-```
-
----
-
-## ☸️ Kubernetes 部署
-
-### 1. 准备 Kubernetes 集群
-
-```bash
-# 创建命名空间
-kubectl create namespace knowton-prod
-
-# 创建 Secrets
-kubectl create secret generic knowton-secrets \
-  --from-literal=database-url=$DATABASE_URL \
-  --from-literal=private-key=$PRIVATE_KEY \
-  --from-literal=pinata-api-key=$PINATA_API_KEY \
-  -n knowton-prod
-```
-
-### 2. 部署数据库
-
-```bash
-# 部署 PostgreSQL
-kubectl apply -f k8s/databases/postgres.yaml
-
-# 部署 MongoDB
-kubectl apply -f k8s/databases/mongodb.yaml
-
-# 部署 Redis
-kubectl apply -f k8s/databases/redis.yaml
-
-# 部署 Kafka
-kubectl apply -f k8s/databases/kafka.yaml
-
-# 部署 ClickHouse
-kubectl apply -f k8s/databases/clickhouse.yaml
-```
-
-### 3. 部署应用服务
-
-```bash
-# 部署后端服务
-kubectl apply -f k8s/backend/
-
-# 部署前端
-kubectl apply -f k8s/frontend/
-
-# 部署 Oracle Adapter
-kubectl apply -f k8s/oracle-adapter/
-
-# 部署 Bonding Service
-kubectl apply -f k8s/bonding-service/
-
-# 部署 API Gateway
-kubectl apply -f k8s/gateway/
-```
-
-### 4. 部署监控
-
-```bash
-# 部署 Prometheus
-kubectl apply -f k8s/monitoring/prometheus.yaml
-
-# 部署 Grafana
-kubectl apply -f k8s/monitoring/grafana.yaml
-```
-
-### 5. 验证部署
-
-```bash
-# 检查所有 Pods
-kubectl get pods -n knowton-prod
-
-# 检查服务
-kubectl get svc -n knowton-prod
-
-# 检查 Ingress
-kubectl get ingress -n knowton-prod
-
-# 查看日志
-kubectl logs -f deployment/backend -n knowton-prod
-```
-
----
-
-## 📊 监控和日志
-
-### Prometheus
-
-访问: http://localhost:9090
-
-**常用查询**:
-```promql
-# API 请求率
-rate(http_requests_total[5m])
-
-# 错误率
-rate(http_requests_total{status=~"5.."}[5m])
-
-# 响应时间
-histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
-```
-
-### Grafana
-
-访问: http://localhost:3000  
-默认账号: admin / admin
-
-**导入仪表板**:
-1. 导航到 Dashboards > Import
-2. 上传 `k8s/monitoring/dashboards/*.json`
-
-### 日志查询
-
-```bash
-# 查看后端日志
-kubectl logs -f deployment/backend -n knowton-prod
-
-# 查看 Oracle Adapter 日志
-kubectl logs -f deployment/oracle-adapter -n knowton-prod
-
-# 查看所有服务日志
-kubectl logs -l app=knowton -n knowton-prod --tail=100
-```
-
----
-
-## 🔧 故障排查
-
-### 常见问题
-
-#### 1. 合约调用失败
-
-**症状**: 交易 revert 或 gas 估算失败
-
-**解决方案**:
-```bash
-# 检查钱包余额
-cast balance $YOUR_ADDRESS --rpc-url $ARBITRUM_RPC_URL
-
-# 检查合约是否部署
-cast code $CONTRACT_ADDRESS --rpc-url $ARBITRUM_RPC_URL
-
-# 检查 gas price
-cast gas-price --rpc-url $ARBITRUM_RPC_URL
-```
-
-#### 2. 数据库连接失败
-
-**症状**: 服务启动失败，数据库连接错误
-
-**解决方案**:
-```bash
-# 检查数据库状态
-docker-compose ps
-
-# 重启数据库
-docker-compose restart postgres mongodb redis
-
-# 检查连接字符串
-echo $DATABASE_URL
-```
-
-#### 3. IPFS 上传失败
-
-**症状**: 内容上传超时或失败
-
-**解决方案**:
-```bash
-# 检查 IPFS 节点
-curl http://localhost:5001/api/v0/version
-
-# 检查 Pinata API
-curl -X GET https://api.pinata.cloud/data/testAuthentication \
-  -H "pinata_api_key: $PINATA_API_KEY" \
-  -H "pinata_secret_api_key: $PINATA_SECRET_KEY"
-```
-
-#### 4. AI 模型加载失败
-
-**症状**: Oracle Adapter 启动慢或失败
-
-**解决方案**:
-```bash
-# 检查 Python 依赖
-pip list | grep torch
-
-# 下载预训练模型
-python -c "import torch; torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True)"
-
-# 检查 GPU 可用性（可选）
-python -c "import torch; print(torch.cuda.is_available())"
-```
-
----
-
-## 🔐 安全最佳实践
-
-### 1. 密钥管理
-
-```bash
-# 使用 HashiCorp Vault
-vault kv put secret/knowton \
-  private_key=$PRIVATE_KEY \
-  database_password=$DB_PASSWORD
-
-# 在 K8s 中使用 Vault
-kubectl apply -f k8s/vault/
-```
-
-### 2. 网络安全
-
-```bash
-# 配置 Network Policies
-kubectl apply -f k8s/security/network-policies.yaml
-
-# 启用 Pod Security Standards
-kubectl label namespace knowton-prod \
-  pod-security.kubernetes.io/enforce=restricted
-```
-
-### 3. Rate Limiting
-
-在 API Gateway 配置中启用:
-```yaml
-apiVersion: traefik.containo.us/v1alpha1
-kind: Middleware
-metadata:
-  name: rate-limit
-spec:
-  rateLimit:
-    average: 100
-    burst: 50
-```
-
----
-
-## 📚 相关文档
-
-- [智能合约文档](packages/contracts/README.md)
-- [后端 API 文档](packages/backend/README.md)
-- [前端开发指南](packages/frontend/README.md)
-- [Oracle Adapter 文档](packages/oracle-adapter/README.md)
-- [Bonding Service 文档](packages/bonding-service/README.md)
-
----
-
-## 🆘 获取帮助
-
-- **GitHub Issues**: https://github.com/knowton/platform/issues
-- **Discord**: https://discord.gg/knowton
-- **文档**: https://docs.knowton.io
-
----
-
-*最后更新: 2025-10-31*
+**祝你部署顺利！** 🎉

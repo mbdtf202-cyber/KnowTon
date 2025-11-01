@@ -1,0 +1,221 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-alert-rules
+  namespace: knowton-dev
+data:
+  audit-alerts.yml: |
+    groups:
+      - name: audit_security_alerts
+        interval: 30s
+        rules:
+          # Critical audit events
+          - alert: CriticalAuditEvent
+            expr: increase(audit_critical_events_total[5m]) > 0
+            for: 1m
+            labels:
+              severity: critical
+              component: audit
+            annotations:
+              summary: "Critical audit event detected"
+              description: "{{ $value }} critical audit events detected in the last 5 minutes. Event type: {{ $labels.event_type }}"
+              
+          # Multiple authentication failures
+          - alert: MultipleAuthenticationFailures
+            expr: increase(audit_auth_failures_total[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "Multiple authentication failures detected"
+              description: "{{ $value }} authentication failures from IP {{ $labels.ip_address }} in the last 5 minutes"
+              
+          # Suspicious activity detected
+          - alert: SuspiciousActivityDetected
+            expr: increase(audit_suspicious_activity_total[10m]) > 3
+            for: 5m
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "Suspicious activity detected"
+              description: "{{ $value }} suspicious activities detected from IP {{ $labels.ip_address }}. Activity type: {{ $labels.activity_type }}"
+              
+          # High rate of failed operations
+          - alert: HighFailureRate
+            expr: rate(audit_failed_operations_total[5m]) > 0.1
+            for: 5m
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "High rate of failed operations"
+              description: "Failed operation rate is {{ $value }} per second for event type {{ $labels.event_type }}"
+              
+          # Hash chain integrity failure
+          - alert: HashChainIntegrityFailure
+            expr: audit_hash_chain_integrity == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: audit
+            annotations:
+              summary: "Audit log hash chain integrity compromised"
+              description: "The audit log hash chain verification has failed. Possible tampering detected!"
+              
+          # Unauthorized access attempts
+          - alert: UnauthorizedAccessAttempts
+            expr: increase(audit_events_total{event_type="security.unauthorized_access"}[5m]) > 10
+            for: 2m
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "Multiple unauthorized access attempts"
+              description: "{{ $value }} unauthorized access attempts detected in the last 5 minutes"
+              
+          # Admin operations spike
+          - alert: AdminOperationsSpike
+            expr: rate(audit_admin_operations_total[5m]) > 1
+            for: 5m
+            labels:
+              severity: info
+              component: audit
+            annotations:
+              summary: "Spike in administrative operations"
+              description: "Admin operation rate is {{ $value }} per second. Operation type: {{ $labels.operation_type }}"
+              
+          # Large financial operation
+          - alert: LargeFinancialOperation
+            expr: audit_financial_operation_value > 100000
+            labels:
+              severity: info
+              component: audit
+            annotations:
+              summary: "Large financial operation detected"
+              description: "Financial operation of {{ $value }} {{ $labels.currency }} detected. Operation type: {{ $labels.operation_type }}"
+              
+          # Rate limit violations spike
+          - alert: RateLimitViolationsSpike
+            expr: increase(audit_rate_limit_violations_total[5m]) > 50
+            for: 2m
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "Spike in rate limit violations"
+              description: "{{ $value }} rate limit violations from IP {{ $labels.ip_address }} on endpoint {{ $labels.endpoint }}"
+              
+          # Audit log storage growing too fast
+          - alert: AuditLogStorageGrowth
+            expr: rate(audit_log_storage_bytes[1h]) > 10485760  # 10MB per hour
+            for: 30m
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "Audit log storage growing rapidly"
+              description: "Audit log storage is growing at {{ $value }} bytes per second"
+              
+          # High audit event rate
+          - alert: HighAuditEventRate
+            expr: rate(audit_events_total[5m]) > 100
+            for: 10m
+            labels:
+              severity: info
+              component: audit
+            annotations:
+              summary: "High audit event rate"
+              description: "Audit event rate is {{ $value }} events per second"
+              
+          # NFT minting spike
+          - alert: NFTMintingSpike
+            expr: increase(audit_nft_operations_total{operation_type="nft.mint"}[5m]) > 50
+            for: 5m
+            labels:
+              severity: info
+              component: audit
+            annotations:
+              summary: "Spike in NFT minting operations"
+              description: "{{ $value }} NFT minting operations in the last 5 minutes"
+              
+          # Governance proposal created
+          - alert: GovernanceProposalCreated
+            expr: increase(audit_governance_operations_total{operation_type="governance.proposal_create"}[5m]) > 0
+            labels:
+              severity: info
+              component: audit
+            annotations:
+              summary: "New governance proposal created"
+              description: "A new governance proposal has been created"
+              
+          # Contract upgrade detected
+          - alert: ContractUpgradeDetected
+            expr: increase(audit_events_total{event_type="admin.contract_upgrade"}[5m]) > 0
+            for: 1m
+            labels:
+              severity: critical
+              component: audit
+            annotations:
+              summary: "Smart contract upgrade detected"
+              description: "A smart contract upgrade operation has been detected"
+              
+          # User ban action
+          - alert: UserBanAction
+            expr: increase(audit_events_total{event_type="admin.user_ban"}[5m]) > 0
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "User ban action performed"
+              description: "An administrator has banned a user"
+              
+      - name: audit_performance_alerts
+        interval: 1m
+        rules:
+          # Slow audit logging
+          - alert: SlowAuditLogging
+            expr: histogram_quantile(0.95, rate(audit_event_duration_seconds_bucket[5m])) > 0.5
+            for: 5m
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "Slow audit event logging"
+              description: "95th percentile audit logging duration is {{ $value }} seconds for event type {{ $labels.event_type }}"
+              
+          # Audit system unhealthy
+          - alert: AuditSystemUnhealthy
+            expr: up{job="backend", endpoint="/metrics/audit"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              component: audit
+            annotations:
+              summary: "Audit system is down"
+              description: "The audit logging system is not responding"
+              
+      - name: audit_compliance_alerts
+        interval: 1h
+        rules:
+          # Audit log retention check
+          - alert: AuditLogRetentionCheck
+            expr: audit_log_count{time_range="total"} > 1000000
+            labels:
+              severity: info
+              component: audit
+            annotations:
+              summary: "Audit log count exceeds threshold"
+              description: "Total audit log count is {{ $value }}. Consider archiving old logs."
+              
+          # No audit events in last hour (system might be down)
+          - alert: NoAuditEventsRecorded
+            expr: increase(audit_events_total[1h]) == 0
+            for: 1h
+            labels:
+              severity: warning
+              component: audit
+            annotations:
+              summary: "No audit events recorded"
+              description: "No audit events have been recorded in the last hour. System might be down or misconfigured."

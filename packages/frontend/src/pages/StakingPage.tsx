@@ -177,34 +177,34 @@ export default function StakingPage() {
         <div className="space-y-6">
           {/* Info Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">什么是质押？</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('staking.whatIsStaking')}</h3>
             <div className="space-y-3 text-sm text-gray-600">
               <p>
-                质押是将您的 KNOW 代币锁定在智能合约中，以支持网络安全和治理，并获得奖励的过程。
+                {t('staking.stakingDescription')}
               </p>
               <p>
-                质押收益来自：
+                {t('staking.revenueFrom')}
               </p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>平台交易手续费分成</li>
-                <li>协议收入分配</li>
-                <li>通胀奖励</li>
-                <li>治理参与奖励</li>
+                <li>{t('staking.tradingFees')}</li>
+                <li>{t('staking.protocolRevenue')}</li>
+                <li>{t('staking.inflationRewards')}</li>
+                <li>{t('staking.governanceRewards')}</li>
               </ul>
             </div>
           </div>
 
           {/* Benefits */}
           <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">质押优势</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('staking.stakingBenefits')}</h3>
             <div className="space-y-3">
               <div className="flex items-start">
                 <svg className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">被动收入</p>
-                  <p className="text-xs text-gray-600">持续获得质押奖励</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('staking.passiveIncome')}</p>
+                  <p className="text-xs text-gray-600">{t('staking.passiveIncomeDesc')}</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -212,8 +212,8 @@ export default function StakingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">治理权力</p>
-                  <p className="text-xs text-gray-600">参与平台决策投票</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('staking.governancePower')}</p>
+                  <p className="text-xs text-gray-600">{t('staking.governancePowerDesc')}</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -221,8 +221,8 @@ export default function StakingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">锁定加成</p>
-                  <p className="text-xs text-gray-600">更长锁定期获得更高收益</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('staking.lockBonus')}</p>
+                  <p className="text-xs text-gray-600">{t('staking.lockBonusDesc')}</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -230,8 +230,8 @@ export default function StakingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">复利增长</p>
-                  <p className="text-xs text-gray-600">奖励可再次质押</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('staking.compoundGrowth')}</p>
+                  <p className="text-xs text-gray-600">{t('staking.compoundGrowthDesc')}</p>
                 </div>
               </div>
             </div>
@@ -244,12 +244,12 @@ export default function StakingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div className="text-sm text-gray-700">
-                <p className="font-medium mb-1">风险提示</p>
+                <p className="font-medium mb-1">{t('staking.riskWarning')}</p>
                 <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li>质押代币存在智能合约风险</li>
-                  <li>锁定期内无法转移代币</li>
-                  <li>APY 会根据市场条件波动</li>
-                  <li>请仔细阅读条款后再质押</li>
+                  <li>{t('staking.riskWarningItems.smartContract')}</li>
+                  <li>{t('staking.riskWarningItems.lockPeriod')}</li>
+                  <li>{t('staking.riskWarningItems.apyFluctuation')}</li>
+                  <li>{t('staking.riskWarningItems.readTerms')}</li>
                 </ul>
               </div>
             </div>
@@ -258,7 +258,7 @@ export default function StakingPage() {
           {/* FAQ Link */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <button className="w-full text-left flex items-center justify-between text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">
-              <span>查看常见问题</span>
+              <span>{t('staking.viewFAQ')}</span>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>

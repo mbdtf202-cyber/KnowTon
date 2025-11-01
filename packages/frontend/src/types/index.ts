@@ -6,6 +6,8 @@ export interface User {
   avatar?: string
   bio?: string
   email?: string
+  walletType?: 'metamask' | 'walletconnect' | 'coinbase' | 'other'
+  role?: 'user' | 'creator' | 'admin'
   socialLinks?: {
     twitter?: string
     discord?: string

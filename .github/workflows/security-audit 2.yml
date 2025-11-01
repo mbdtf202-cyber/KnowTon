@@ -1,0 +1,281 @@
+name: Smart Contract Security Audit
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/contracts/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'packages/contracts/**'
+  workflow_dispatch:
+
+jobs:
+  slither-analysis:
+    name: Slither Static Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        working-directory: packages/contracts
+        run: |
+          npm ci
+          pip install slither-analyzer
+      
+      - name: Compile contracts
+        working-directory: packages/contracts
+        run: npm run build
+      
+      - name: Run Slither
+        working-directory: packages/contracts
+        run: |
+          mkdir -p audit-reports
+          slither . \
+            --exclude-dependencies \
+            --exclude-informational \
+            --exclude-low \
+            --json audit-reports/slither-report.json \
+            > audit-reports/slither-report.txt 2>&1 || true
+      
+      - name: Upload Slither report
+        uses: actions/upload-artifact@v3
+        with:
+          name: slither-report
+          path: packages/contracts/audit-reports/slither-report.*
+      
+      - name: Check for critical issues
+        working-directory: packages/contracts
+        run: |
+          if grep -q "High\|Critical" audit-reports/slither-report.txt 2>/dev/null; then
+            echo "::error::Critical or High severity issues found!"
+            cat audit-reports/slither-report.txt
+            exit 1
+          fi
+
+  mythril-analysis:
+    name: Mythril Symbolic Execution
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install Mythril
+        run: pip install mythril
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: packages/contracts
+        run: npm ci
+      
+      - name: Compile contracts
+        working-directory: packages/contracts
+        run: npm run build
+      
+      - name: Run Mythril on core contracts
+        working-directory: packages/contracts
+        run: |
+          mkdir -p audit-reports
+          
+          # Analyze core contracts with timeout
+          for contract in contracts/IPBondSimple.sol contracts/CopyrightRegistrySimple.sol; do
+            if [ -f "$contract" ]; then
+              name=$(basename "$contract" .sol)
+              echo "Analyzing $name..."
+              myth analyze "$contract" \
+                --solv 0.8.20 \
+                --execution-timeout 300 \
+                > "audit-reports/mythril-$name.txt" 2>&1 || true
+            fi
+          done
+      
+      - name: Upload Mythril reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: mythril-reports
+          path: packages/contracts/audit-reports/mythril-*.txt
+
+  solhint-linting:
+    name: Solhint Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install Solhint
+        run: npm install -g solhint
+      
+      - name: Run Solhint
+        working-directory: packages/contracts
+        run: |
+          mkdir -p audit-reports
+          solhint 'contracts/**/*.sol' \
+            > audit-reports/solhint-report.txt 2>&1 || true
+      
+      - name: Upload Solhint report
+        uses: actions/upload-artifact@v3
+        with:
+          name: solhint-report
+          path: packages/contracts/audit-reports/solhint-report.txt
+
+  gas-analysis:
+    name: Gas Usage Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        working-directory: packages/contracts
+        run: npm ci
+      
+      - name: Run tests with gas reporting
+        working-directory: packages/contracts
+        env:
+          REPORT_GAS: true
+        run: |
+          mkdir -p audit-reports
+          npm run test:gas > audit-reports/gas-report.txt 2>&1 || true
+      
+      - name: Upload gas report
+        uses: actions/upload-artifact@v3
+        with:
+          name: gas-report
+          path: packages/contracts/audit-reports/gas-report.txt
+
+  contract-size:
+    name: Contract Size Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        working-directory: packages/contracts
+        run: npm ci
+      
+      - name: Check contract sizes
+        working-directory: packages/contracts
+        run: |
+          mkdir -p audit-reports
+          npm run size > audit-reports/contract-sizes.txt 2>&1 || true
+      
+      - name: Upload size report
+        uses: actions/upload-artifact@v3
+        with:
+          name: contract-sizes
+          path: packages/contracts/audit-reports/contract-sizes.txt
+
+  summary:
+    name: Generate Audit Summary
+    runs-on: ubuntu-latest
+    needs: [slither-analysis, mythril-analysis, solhint-linting, gas-analysis, contract-size]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: audit-artifacts
+      
+      - name: Generate summary
+        run: |
+          echo "# Security Audit Summary" > audit-summary.md
+          echo "" >> audit-summary.md
+          echo "**Date:** $(date)" >> audit-summary.md
+          echo "**Commit:** ${{ github.sha }}" >> audit-summary.md
+          echo "" >> audit-summary.md
+          
+          echo "## Slither Analysis" >> audit-summary.md
+          if [ -f "audit-artifacts/slither-report/slither-report.txt" ]; then
+            echo '```' >> audit-summary.md
+            head -50 audit-artifacts/slither-report/slither-report.txt >> audit-summary.md
+            echo '```' >> audit-summary.md
+          else
+            echo "No report generated" >> audit-summary.md
+          fi
+          echo "" >> audit-summary.md
+          
+          echo "## Mythril Analysis" >> audit-summary.md
+          if ls audit-artifacts/mythril-reports/*.txt 1> /dev/null 2>&1; then
+            for file in audit-artifacts/mythril-reports/*.txt; do
+              echo "### $(basename $file)" >> audit-summary.md
+              echo '```' >> audit-summary.md
+              head -30 "$file" >> audit-summary.md
+              echo '```' >> audit-summary.md
+            done
+          else
+            echo "No reports generated" >> audit-summary.md
+          fi
+          
+          cat audit-summary.md
+      
+      - name: Upload summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: audit-summary
+          path: audit-summary.md
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('audit-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

@@ -6,7 +6,7 @@ from PIL import Image
 import librosa
 import numpy as np
 import hashlib
-from typing import Dict, Optional, Any, Tuple
+from typing import Dict, Optional, Any, Tuple, List
 import structlog
 import time
 import httpx
@@ -16,6 +16,10 @@ import cv2
 import tempfile
 import os
 from collections import Counter
+import asyncio
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from functools import lru_cache
+import pickle
 
 from src.config import settings
 from src.models.schemas import (
@@ -30,18 +34,27 @@ logger = structlog.get_logger()
 
 
 class FingerprintService:
-    """Service for generating content fingerprints using AI models"""
+    """Service for generating content fingerprints using AI models with optimizations"""
     
     def __init__(self):
         self.image_model = None
         self.audio_model = None
         self.video_model = None
         self.transform = None
+        self.device = None
+        self.thread_pool = ThreadPoolExecutor(max_workers=settings.max_workers)
+        self.process_pool = ProcessPoolExecutor(max_workers=settings.max_workers)
+        self._cache = {}  # In-memory cache for intermediate results
+        self._cache_ttl = 3600  # 1 hour TTL
     
     async def load_models(self):
-        """Load AI models for fingerprinting"""
+        """Load AI models for fingerprinting with GPU acceleration"""
         try:
             logger.info("Loading fingerprinting models")
+            
+            # Detect GPU availability
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            logger.info(f"Using device: {self.device}")
             
             # Load image model (ResNet-50 for feature extraction)
             self.image_model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True)
@@ -49,6 +62,13 @@ class FingerprintService:
             
             # Remove the final classification layer to get features
             self.image_model = torch.nn.Sequential(*list(self.image_model.children())[:-1])
+            
+            # Move model to GPU if available
+            self.image_model = self.image_model.to(self.device)
+            
+            # Enable mixed precision for faster inference on GPU
+            if self.device.type == 'cuda':
+                self.image_model = self.image_model.half()  # Use FP16 for faster inference
             
             # Image preprocessing with data augmentation for robustness
             self.transform = transforms.Compose([
@@ -64,21 +84,31 @@ class FingerprintService:
             # Video model initialization (placeholder for future implementation)
             self.video_model = None  # Will load I3D or SlowFast
             
-            logger.info("Fingerprinting models loaded successfully")
+            logger.info(f"Fingerprinting models loaded successfully on {self.device}")
         except Exception as e:
             logger.error("Failed to load fingerprinting models", error=str(e))
             # Continue without models for basic fingerprinting
+            self.device = torch.device('cpu')
     
     async def generate_fingerprint(
         self,
         content_url: str,
         content_type: ContentType,
         metadata: Optional[Dict[str, Any]] = None,
+        use_cache: bool = True,
     ) -> FingerprintResponse:
-        """Generate content fingerprint based on content type"""
+        """Generate content fingerprint based on content type with caching and optimization"""
         start_time = time.time()
         
         try:
+            # Check cache first
+            cache_key = self._get_cache_key(content_url, content_type)
+            if use_cache and cache_key in self._cache:
+                cached_result, cached_time = self._cache[cache_key]
+                if time.time() - cached_time < self._cache_ttl:
+                    logger.info("Returning cached fingerprint", content_type=content_type)
+                    return cached_result
+            
             logger.info("Generating fingerprint", content_type=content_type)
             
             if content_type == ContentType.IMAGE:
@@ -107,24 +137,32 @@ class FingerprintService:
                 processing_time_ms=processing_time,
             )
             
-            # Store in vector database
-            await vector_db.store_vector(
-                content_id=fingerprint,
-                vector=features.feature_vector,
-                metadata={
-                    "content_type": content_type.value,
-                    "metadata_uri": content_url,
-                    "timestamp": time.time(),
-                    **features.metadata
-                }
+            # Store in vector database asynchronously (non-blocking)
+            asyncio.create_task(
+                vector_db.store_vector(
+                    content_id=fingerprint,
+                    vector=features.feature_vector,
+                    metadata={
+                        "content_type": content_type.value,
+                        "metadata_uri": content_url,
+                        "timestamp": time.time(),
+                        **features.metadata
+                    }
+                )
             )
             
-            return FingerprintResponse(
+            result = FingerprintResponse(
                 fingerprint=fingerprint,
                 features=features,
                 confidence_score=0.95,
                 processing_time_ms=processing_time,
             )
+            
+            # Cache the result
+            if use_cache:
+                self._cache[cache_key] = (result, time.time())
+            
+            return result
     
     async def detect_similarity(
         self,
@@ -200,19 +238,31 @@ class FingerprintService:
             logger.error("Similarity detection failed", error=str(e))
             raise
     
+    def _get_cache_key(self, content_url: str, content_type: ContentType) -> str:
+        """Generate cache key for content"""
+        return hashlib.md5(f"{content_url}:{content_type.value}".encode()).hexdigest()
+    
     async def _generate_image_fingerprint(self, content_url: str) -> Tuple[str, FingerprintFeatures]:
-        """Generate fingerprint for image content"""
+        """Generate fingerprint for image content with parallel processing"""
         
         # Load image
         image = await self._load_image(content_url)
         
-        # Generate perceptual hash
-        phash = self._calculate_phash(image)
+        # Run perceptual hash and AI feature extraction in parallel
+        tasks = [
+            asyncio.get_event_loop().run_in_executor(
+                self.thread_pool, self._calculate_phash, image
+            )
+        ]
         
-        # Generate AI features if model is available
-        ai_features = []
+        # Add AI feature extraction if model is available
         if self.image_model is not None:
-            ai_features = await self._extract_image_features(image)
+            tasks.append(self._extract_image_features(image))
+        
+        # Execute in parallel
+        results = await asyncio.gather(*tasks)
+        phash = results[0]
+        ai_features = results[1] if len(results) > 1 else []
         
         # Create feature vector
         feature_vector = ai_features[:128] if len(ai_features) >= 128 else ([0.0] * 128)
@@ -240,58 +290,21 @@ class FingerprintService:
         return fingerprint, features
     
     async def _generate_audio_fingerprint(self, content_url: str) -> Tuple[str, FingerprintFeatures]:
-        """Generate fingerprint for audio content"""
+        """Generate fingerprint for audio content with parallel processing"""
         
         try:
             # Download audio
             audio_data = await self._download_content(content_url)
             
-            # Load with librosa
-            y, sr = librosa.load(io.BytesIO(audio_data), sr=None)
-            
-            # Generate audio features
-            chroma = librosa.feature.chroma_stft(y=y, sr=sr)
-            chroma_mean = np.mean(chroma, axis=1)
-            
-            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-            mfcc_mean = np.mean(mfcc, axis=1)
-            
-            # Combine features
-            audio_features = np.concatenate([chroma_mean, mfcc_mean])
-            
-            # Pad or truncate to 128 dimensions
-            if len(audio_features) < 128:
-                feature_vector = np.pad(audio_features, (0, 128 - len(audio_features))).tolist()
-            else:
-                feature_vector = audio_features[:128].tolist()
-            
-            # Create fingerprint
-            fingerprint_data = {
-                "chroma": chroma_mean.tolist(),
-                "mfcc": mfcc_mean.tolist(),
-                "duration": len(y) / sr,
-                "sample_rate": sr,
-            }
-            fingerprint = hashlib.sha256(str(fingerprint_data).encode()).hexdigest()
-            
-            # Calculate additional features
-            tempo = librosa.beat.tempo(y=y, sr=sr)[0]
-            spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
-            zcr = np.mean(librosa.feature.zero_crossing_rate(y))
-            
-            features = FingerprintFeatures(
-                perceptual_hash="",  # Audio doesn't use perceptual hash
-                feature_vector=feature_vector,
-                metadata={
-                    "duration": len(y) / sr,
-                    "sample_rate": sr,
-                    "tempo": float(tempo),
-                    "spectral_centroid": float(spectral_centroid),
-                    "zero_crossing_rate": float(zcr),
-                },
+            # Process audio in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                self.process_pool,
+                self._process_audio_features,
+                audio_data
             )
             
-            return fingerprint, features
+            return result
         
         except Exception as e:
             logger.error("Audio fingerprint generation failed", error=str(e))
@@ -304,84 +317,72 @@ class FingerprintService:
             )
             return fingerprint, features
     
+    @staticmethod
+    def _process_audio_features(audio_data: bytes) -> Tuple[str, FingerprintFeatures]:
+        """Process audio features in separate process for CPU-intensive work"""
+        # Load with librosa
+        y, sr = librosa.load(io.BytesIO(audio_data), sr=None)
+        
+        # Generate audio features in parallel using numpy operations
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+        chroma_mean = np.mean(chroma, axis=1)
+        
+        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+        mfcc_mean = np.mean(mfcc, axis=1)
+        
+        # Combine features
+        audio_features = np.concatenate([chroma_mean, mfcc_mean])
+        
+        # Pad or truncate to 128 dimensions
+        if len(audio_features) < 128:
+            feature_vector = np.pad(audio_features, (0, 128 - len(audio_features))).tolist()
+        else:
+            feature_vector = audio_features[:128].tolist()
+        
+        # Create fingerprint
+        fingerprint_data = {
+            "chroma": chroma_mean.tolist(),
+            "mfcc": mfcc_mean.tolist(),
+            "duration": len(y) / sr,
+            "sample_rate": sr,
+        }
+        fingerprint = hashlib.sha256(str(fingerprint_data).encode()).hexdigest()
+        
+        # Calculate additional features
+        tempo = librosa.beat.tempo(y=y, sr=sr)[0]
+        spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
+        zcr = np.mean(librosa.feature.zero_crossing_rate(y))
+        
+        features = FingerprintFeatures(
+            perceptual_hash="",  # Audio doesn't use perceptual hash
+            feature_vector=feature_vector,
+            metadata={
+                "duration": len(y) / sr,
+                "sample_rate": sr,
+                "tempo": float(tempo),
+                "spectral_centroid": float(spectral_centroid),
+                "zero_crossing_rate": float(zcr),
+            },
+        )
+        
+        return fingerprint, features
+    
     async def _generate_video_fingerprint(self, content_url: str) -> Tuple[str, FingerprintFeatures]:
-        """Generate fingerprint for video content"""
+        """Generate fingerprint for video content with parallel frame processing"""
         
         try:
             # Download video
             video_data = await self._download_content(content_url)
             
-            # Save to temporary file
-            with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp_file:
-                tmp_file.write(video_data)
-                tmp_path = tmp_file.name
+            # Process video in thread pool
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                self.process_pool,
+                self._process_video_features,
+                video_data
+            )
             
-            try:
-                # Extract key frames
-                cap = cv2.VideoCapture(tmp_path)
-                frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                duration = frame_count / fps if fps > 0 else 0
-                
-                # Extract frames at regular intervals
-                frames = []
-                interval = max(1, frame_count // 10)  # Max 10 frames
-                
-                for i in range(0, frame_count, interval):
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-                    ret, frame = cap.read()
-                    if ret:
-                        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        frames.append(frame_rgb)
-                
-                cap.release()
-                
-                # Generate fingerprints for frames
-                frame_hashes = []
-                for frame in frames:
-                    pil_frame = Image.fromarray(frame)
-                    phash = self._calculate_phash(pil_frame)
-                    frame_hashes.append(phash)
-                
-                # Create combined fingerprint
-                fingerprint_data = {
-                    "frame_hashes": frame_hashes,
-                    "duration": duration,
-                    "fps": fps,
-                    "frame_count": frame_count,
-                }
-                fingerprint = hashlib.sha256(str(fingerprint_data).encode()).hexdigest()
-                
-                # Create feature vector from frame hashes
-                feature_vector = []
-                for hash_str in frame_hashes[:8]:  # Use first 8 frames
-                    # Convert hex hash to numeric values
-                    hash_int = int(hash_str, 16)
-                    # Take lower 16 bits and normalize
-                    feature_vector.extend([(hash_int >> i) & 1 for i in range(16)])
-                
-                # Pad to 128 dimensions
-                while len(feature_vector) < 128:
-                    feature_vector.append(0.0)
-                feature_vector = feature_vector[:128]
-                
-                features = FingerprintFeatures(
-                    perceptual_hash=frame_hashes[0] if frame_hashes else "",
-                    feature_vector=feature_vector,
-                    metadata={
-                        "duration": duration,
-                        "fps": fps,
-                        "frame_count": frame_count,
-                        "key_frames": len(frames),
-                        "width": int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                        "height": int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                    },
-                )
-                
-                return fingerprint, features
-            
-            finally:
-                os.unlink(tmp_path)
+            return result
         
         except Exception as e:
             logger.error("Video fingerprint generation failed", error=str(e))
@@ -393,6 +394,83 @@ class FingerprintService:
                 metadata={"error": str(e)},
             )
             return fingerprint, features
+    
+    @staticmethod
+    def _process_video_features(video_data: bytes) -> Tuple[str, FingerprintFeatures]:
+        """Process video features in separate process for CPU-intensive work"""
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp_file:
+            tmp_file.write(video_data)
+            tmp_path = tmp_file.name
+        
+        try:
+            # Extract key frames
+            cap = cv2.VideoCapture(tmp_path)
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            duration = frame_count / fps if fps > 0 else 0
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            
+            # Extract frames at regular intervals (parallel-friendly approach)
+            frames = []
+            interval = max(1, frame_count // 10)  # Max 10 frames
+            
+            for i in range(0, frame_count, interval):
+                cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+                ret, frame = cap.read()
+                if ret:
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frames.append(frame_rgb)
+            
+            cap.release()
+            
+            # Generate fingerprints for frames in parallel using list comprehension
+            frame_hashes = []
+            for frame in frames:
+                pil_frame = Image.fromarray(frame)
+                phash = FingerprintService._calculate_phash_static(pil_frame)
+                frame_hashes.append(phash)
+            
+            # Create combined fingerprint
+            fingerprint_data = {
+                "frame_hashes": frame_hashes,
+                "duration": duration,
+                "fps": fps,
+                "frame_count": frame_count,
+            }
+            fingerprint = hashlib.sha256(str(fingerprint_data).encode()).hexdigest()
+            
+            # Create feature vector from frame hashes
+            feature_vector = []
+            for hash_str in frame_hashes[:8]:  # Use first 8 frames
+                # Convert hex hash to numeric values
+                hash_int = int(hash_str, 16)
+                # Take lower 16 bits and normalize
+                feature_vector.extend([(hash_int >> i) & 1 for i in range(16)])
+            
+            # Pad to 128 dimensions
+            while len(feature_vector) < 128:
+                feature_vector.append(0.0)
+            feature_vector = feature_vector[:128]
+            
+            features = FingerprintFeatures(
+                perceptual_hash=frame_hashes[0] if frame_hashes else "",
+                feature_vector=feature_vector,
+                metadata={
+                    "duration": duration,
+                    "fps": fps,
+                    "frame_count": frame_count,
+                    "key_frames": len(frames),
+                    "width": width,
+                    "height": height,
+                },
+            )
+            
+            return fingerprint, features
+        
+        finally:
+            os.unlink(tmp_path)
     
     async def _generate_text_fingerprint(self, content_url: str) -> Tuple[str, FingerprintFeatures]:
         """Generate fingerprint for text content"""
@@ -509,7 +587,7 @@ class FingerprintService:
         return format(hash_int, '016x')
     
     async def _extract_image_features(self, image: Image.Image) -> list:
-        """Extract AI features from image using ResNet"""
+        """Extract AI features from image using ResNet with GPU acceleration"""
         
         if self.image_model is None or self.transform is None:
             return []
@@ -518,15 +596,47 @@ class FingerprintService:
             # Preprocess image
             input_tensor = self.transform(image).unsqueeze(0)
             
-            # Extract features
+            # Move to GPU if available
+            input_tensor = input_tensor.to(self.device)
+            
+            # Use FP16 if on GPU
+            if self.device.type == 'cuda':
+                input_tensor = input_tensor.half()
+            
+            # Extract features with GPU acceleration
             with torch.no_grad():
                 features = self.image_model(input_tensor)
-                features = features.squeeze().numpy()
+                features = features.squeeze().cpu().numpy()
             
             return features.tolist()
         except Exception as e:
             logger.error("AI feature extraction failed", error=str(e))
             return []
+    
+    @staticmethod
+    def _calculate_phash_static(image: Image.Image) -> str:
+        """Static version of perceptual hash calculation for multiprocessing"""
+        # Resize to 32x32
+        image = image.resize((32, 32), Image.Resampling.LANCZOS)
+        
+        # Convert to grayscale
+        image = image.convert('L')
+        
+        # Get pixel values
+        pixels = list(image.getdata())
+        
+        # Calculate average
+        avg = sum(pixels) / len(pixels)
+        
+        # Generate hash
+        hash_bits = []
+        for pixel in pixels:
+            hash_bits.append('1' if pixel > avg else '0')
+        
+        # Convert to hex
+        hash_str = ''.join(hash_bits)
+        hash_int = int(hash_str, 2)
+        return format(hash_int, '016x')
     
     async def search_similar_content(
         self,
@@ -607,3 +717,67 @@ class FingerprintService:
                 "similar_content": [],
                 "error": str(e)
             }
+    
+    async def batch_generate_fingerprints(
+        self,
+        content_items: List[Tuple[str, ContentType]],
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> List[FingerprintResponse]:
+        """Generate fingerprints for multiple content items in parallel"""
+        start_time = time.time()
+        
+        try:
+            logger.info(f"Batch generating {len(content_items)} fingerprints")
+            
+            # Process all items in parallel
+            tasks = [
+                self.generate_fingerprint(url, content_type, metadata)
+                for url, content_type in content_items
+            ]
+            
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Filter out exceptions and log them
+            valid_results = []
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(
+                        f"Batch fingerprint generation failed for item {i}",
+                        error=str(result)
+                    )
+                else:
+                    valid_results.append(result)
+            
+            processing_time = (time.time() - start_time) * 1000
+            logger.info(
+                f"Batch fingerprint generation completed",
+                total_items=len(content_items),
+                successful=len(valid_results),
+                failed=len(content_items) - len(valid_results),
+                total_time_ms=processing_time,
+                avg_time_per_item_ms=processing_time / len(content_items) if content_items else 0
+            )
+            
+            return valid_results
+            
+        except Exception as e:
+            logger.error("Batch fingerprint generation failed", error=str(e))
+            raise
+    
+    def clear_cache(self):
+        """Clear the fingerprint cache"""
+        self._cache.clear()
+        logger.info("Fingerprint cache cleared")
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics"""
+        return {
+            "cache_size": len(self._cache),
+            "cache_ttl_seconds": self._cache_ttl,
+            "device": str(self.device) if self.device else "not_initialized",
+            "models_loaded": {
+                "image": self.image_model is not None,
+                "audio": self.audio_model is not None,
+                "video": self.video_model is not None,
+            }
+        }

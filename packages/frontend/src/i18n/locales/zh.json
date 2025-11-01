@@ -160,7 +160,21 @@
     "placeOrder": "下单",
     "cancelOrder": "取消订单",
     "orderPlaced": "订单已下达！",
-    "orderCancelled": "订单已取消"
+    "orderCancelled": "订单已取消",
+    "backToDetails": "返回详情",
+    "realTimeConnected": "实时连接",
+    "disconnected": "已断开",
+    "latestPrice": "最新价格",
+    "high24h": "24h 最高",
+    "low24h": "24h 最低",
+    "volume24h": "24h 成交量",
+    "trades24h": "24h 成交笔数",
+    "depthChart": "深度图",
+    "depthChartInDevelopment": "深度图功能开发中",
+    "myOrders": "我的订单",
+    "noActiveOrders": "暂无活跃订单",
+    "verified": "已验证",
+    "creator": "创作者"
   },
   "fractionalize": {
     "title": "碎片化 NFT",
@@ -195,7 +209,31 @@
     "unstaking": "解除质押中...",
     "claiming": "领取中...",
     "success": "操作成功！",
-    "error": "操作失败"
+    "error": "操作失败",
+    "whatIsStaking": "什么是质押？",
+    "stakingDescription": "质押是将您的 KNOW 代币锁定在智能合约中，以支持网络安全和治理，并获得奖励的过程。",
+    "revenueFrom": "质押收益来自：",
+    "tradingFees": "平台交易手续费分成",
+    "protocolRevenue": "协议收入分配",
+    "inflationRewards": "通胀奖励",
+    "governanceRewards": "治理参与奖励",
+    "stakingBenefits": "质押优势",
+    "passiveIncome": "被动收入",
+    "passiveIncomeDesc": "持续获得质押奖励",
+    "governancePower": "治理权力",
+    "governancePowerDesc": "参与平台决策投票",
+    "lockBonus": "锁定加成",
+    "lockBonusDesc": "更长锁定期获得更高收益",
+    "compoundGrowth": "复利增长",
+    "compoundGrowthDesc": "奖励可再次质押",
+    "riskWarning": "风险提示",
+    "riskWarningItems": {
+      "smartContract": "质押代币存在智能合约风险",
+      "lockPeriod": "锁定期内无法转移代币",
+      "apyFluctuation": "APY 会根据市场条件波动",
+      "readTerms": "请仔细阅读条款后再质押"
+    },
+    "viewFAQ": "查看常见问题"
   },
   "governance": {
     "title": "治理",
@@ -277,7 +315,11 @@
     "selectNetwork": "选择网络",
     "networkTip": "切换网络可能需要几秒钟",
     "balance": "余额",
-    "address": "地址"
+    "address": "地址",
+    "currentWallet": "当前钱包",
+    "switchTo": "切换到其他钱包",
+    "ready": "就绪",
+    "notInstalled": "未安装"
   },
   "transaction": {
     "pending": "交易待处理",

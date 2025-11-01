@@ -10,6 +10,7 @@ class ContentType(str, Enum):
     IMAGE = "image"
     AUDIO = "audio"
     VIDEO = "video"
+    TEXT = "text"
 
 
 class FingerprintRequest(BaseModel):
@@ -17,21 +18,27 @@ class FingerprintRequest(BaseModel):
     content_url: str = Field(..., description="IPFS CID or URL to content")
     content_type: ContentType = Field(..., description="Type of content")
     metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
+    use_cache: bool = Field(default=True, description="Whether to use cached results")
+
+
+class BatchFingerprintRequest(BaseModel):
+    """Request to generate fingerprints for multiple content items"""
+    items: List[FingerprintRequest] = Field(..., description="List of content items to fingerprint")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Shared metadata for all items")
 
 
 class FingerprintFeatures(BaseModel):
     """Feature vector representation"""
-    vector: List[float] = Field(..., description="Feature vector")
-    dimensions: int = Field(..., description="Number of dimensions")
-    model_version: str = Field(..., description="Model version used")
+    perceptual_hash: str = Field(default="", description="Perceptual hash of content")
+    feature_vector: List[float] = Field(..., description="Feature vector (128 dimensions)")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
 class FingerprintResponse(BaseModel):
     """Response containing content fingerprint"""
     fingerprint: str = Field(..., description="Unique content fingerprint hash")
     features: FingerprintFeatures = Field(..., description="Feature vector")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
-    content_type: ContentType = Field(..., description="Type of content")
+    confidence_score: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
     processing_time_ms: float = Field(..., description="Processing time in milliseconds")
 
 
@@ -93,6 +100,35 @@ class HealthResponse(BaseModel):
     version: str = Field(..., description="Service version")
     models_loaded: Dict[str, bool] = Field(..., description="Model loading status")
     uptime_seconds: float = Field(..., description="Service uptime")
+
+
+class SimilaritySearchRequest(BaseModel):
+    """Request to search for similar content"""
+    content_url: str = Field(..., description="URL or data URI of content to search")
+    content_type: ContentType = Field(..., description="Type of content")
+    threshold: float = Field(default=0.85, ge=0.0, le=1.0, description="Similarity threshold (0-1)")
+    limit: int = Field(default=10, ge=1, le=100, description="Maximum number of results")
+    offset: int = Field(default=0, ge=0, description="Pagination offset")
+
+
+class SimilarContentItem(BaseModel):
+    """Similar content item"""
+    content_id: str = Field(..., description="Content fingerprint ID")
+    similarity_score: float = Field(..., ge=0.0, le=1.0, description="Similarity score")
+    content_type: Optional[str] = Field(default=None, description="Content type")
+    metadata_uri: Optional[str] = Field(default=None, description="Metadata URI")
+    timestamp: Optional[float] = Field(default=None, description="Timestamp when stored")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+
+
+class SimilaritySearchResponse(BaseModel):
+    """Response containing similar content"""
+    query_fingerprint: str = Field(..., description="Fingerprint of query content")
+    total_results: int = Field(..., description="Total number of results found")
+    results: List[SimilarContentItem] = Field(..., description="List of similar content")
+    threshold_used: float = Field(..., description="Similarity threshold used")
+    processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+    pagination: Dict[str, Any] = Field(default_factory=dict, description="Pagination info")
 
 
 class ErrorResponse(BaseModel):

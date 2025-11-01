@@ -2,10 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/error';
 import { logger } from './utils/logger';
 
+import authRoutes from './routes/auth.routes';
 import creatorRoutes from './routes/creator.routes';
+import creatorQualificationRoutes from './routes/creator-qualification.routes';
 import contentRoutes from './routes/content.routes';
 import nftRoutes from './routes/nft.routes';
 import royaltyRoutes from './routes/royalty.routes';
@@ -18,6 +21,10 @@ import lendingRoutes from './routes/lending.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import tradingRoutes from './routes/trading';
 import auditRoutes from './routes/audit.routes';
+import kycRoutes from './routes/kyc.routes';
+import uploadRoutes, { uploadService } from './routes/upload.routes';
+import similarityRoutes from './routes/similarity.routes';
+import plagiarismRoutes from './routes/plagiarism.routes';
 import { autoAuditMiddleware } from './middleware/audit.middleware';
 import { requestIdMiddleware, requestLoggerMiddleware } from './middleware/requestLogger';
 import { auditMetricsRegistry } from './services/audit-metrics.service';
@@ -25,7 +32,11 @@ import { auditMetricsRegistry } from './services/audit-metrics.service';
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+}));
+app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
@@ -53,7 +64,9 @@ app.get('/metrics/audit', async (req, res) => {
   }
 });
 
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/creators', creatorRoutes);
+app.use('/api/v1/creator-qualification', creatorQualificationRoutes);
 app.use('/api/v1/content', contentRoutes);
 app.use('/api/v1/nft', nftRoutes);
 app.use('/api/v1/royalty', royaltyRoutes);
@@ -66,6 +79,18 @@ app.use('/api/v1/lending', lendingRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/trading', tradingRoutes);
 app.use('/api/v1/audit', auditRoutes);
+app.use('/api/v1/kyc', kycRoutes);
+app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/similarity', similarityRoutes);
+app.use('/api/v1/plagiarism', plagiarismRoutes);
+
+// Tus upload server for resumable uploads
+app.all('/api/v1/upload/files', (req, res) => {
+  uploadService.getServer().handle(req, res);
+});
+app.all('/api/v1/upload/files/*', (req, res) => {
+  uploadService.getServer().handle(req, res);
+});
 
 app.use(errorHandler);
 
