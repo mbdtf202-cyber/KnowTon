@@ -26,17 +26,98 @@
 
 ## 📋 Table of Contents
 
-- [🌟 Overview](#-overview)
+- [🚀 Value Proposition](#-value-proposition)
+- [📚 Key Documentation](#-key-documentation)
+- [�  Overview](#-overview)
 - [✨ Key Features](#-key-features)
 - [🏗️ Technical Architecture](#️-technical-architecture)
+- [🔒 Security & Compliance](#-security--compliance)
 - [🚀 Quick Start](#-quick-start)
-- [📦 Project Structure](#-project-structure)
+- [� Projecnt Structure](#-project-structure)
 - [🎯 Implementation Status](#-implementation-status)
 - [🧪 Testing](#-testing)
-- [📚 Documentation](#-documentation)
+- [� LDocumentation](#-documentation)
 - [🤝 Contributing](#-contributing)
 - [🌍 Community](#-community)
 - [📄 License](#-license)
+
+---
+
+## 🚀 Value Proposition
+
+### Why KnowTon? | 为什么选择 KnowTon？
+
+<table>
+<tr>
+<td width="50%">
+
+**For Creators | 创作者**
+- ⚡ **Fast, Transparent Payouts** - Smart contract-driven instant settlements
+- 🔐 **Verifiable Ownership** - Immutable on-chain proof of authorship
+- 💰 **Multiple Revenue Streams** - Sales, royalties, fractionalization, IP bonds
+- 🛡️ **Enterprise-Grade DRM** - Hybrid encryption + watermarking protection
+
+</td>
+<td width="50%">
+
+**For Buyers & Enterprises | 买家与企业**
+- ✅ **Verifiable IP Provenance** - Complete ownership history on-chain
+- 🔒 **Enterprise DRM** - Secure content delivery with access control
+- 🔌 **White-Label APIs** - Seamless integration into existing systems
+- 📊 **Audit Trail** - Full transparency for compliance requirements
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**For Investors | 投资者**
+- 📈 **Structured IP Products** - IP bonds with predictable returns
+- 🔄 **Fractional Markets** - Liquid secondary markets for IP shares
+- 📊 **On-Chain Transparency** - Real-time performance metrics
+- ⚖️ **Legal Wrappers** - Off-chain legal agreements backing on-chain assets
+
+</td>
+<td width="50%">
+
+**Platform Advantages | 平台优势**
+- 🌐 **Arbitrum L2** - Low fees, high throughput, Ethereum security
+- 🤖 **AI-Powered** - Automated similarity detection & content analysis
+- 🏛️ **DAO Governance** - Community-driven protocol evolution
+- 🔐 **Security First** - Multi-sig, timelock, comprehensive audits
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📚 Key Documentation
+
+### Essential Reading | 必读文档
+
+<div align="center">
+
+| Document | Description | Status |
+|----------|-------------|--------|
+| **[🔒 SECURITY.md](./SECURITY.md)** | Security policy, bug bounty, audit reports | ✅ Active |
+| **[⚖️ LEGAL.md](./LEGAL.md)** | Terms of service, privacy policy, IP framework | ✅ Active |
+| **[📋 COMPLIANCE.md](./COMPLIANCE.md)** | KYC/AML, regulatory compliance, data protection | ✅ Active |
+| **[🛡️ DRM_ARCHITECTURE.md](./DRM_ARCHITECTURE.md)** | Content protection & encryption architecture | ✅ Active |
+| **[🪙 TOKENOMICS.md](./TOKENOMICS.md)** | Token model & economics (planned) | 📝 Draft |
+| **[🏛️ GOVERNANCE.md](./GOVERNANCE.md)** | DAO governance framework & voting | 📝 Draft |
+| **[🗺️ ROADMAP.md](./ROADMAP.md)** | Product roadmap & milestones | ✅ Active |
+| **[📊 AUDIT_REPORTS/](./AUDIT_REPORTS/)** | Third-party security audits | ⏳ Planned Q1 2026 |
+
+</div>
+
+### Quick Links | 快速链接
+
+- 🚨 **Report Security Issue**: security@knowton.io ([PGP Key](./SECURITY.md#pgp-key))
+- 💰 **Bug Bounty**: Up to $50,000 for critical vulnerabilities
+- 📞 **Enterprise Contact**: enterprise@knowton.io
+- 🤝 **Partnerships**: partnerships@knowton.io
+- 📖 **Developer Docs**: [docs.knowton.io](https://docs.knowton.io)
 
 ---
 
@@ -447,6 +528,102 @@ graph LR
 | **Recommendation** | Graph Neural Networks | 88%+ | Content discovery |
 | **Fraud Detection** | Isolation Forest | 90%+ | Security monitoring |
 
+
+---
+
+## � Seccurity & Compliance
+
+### Security Measures | 安全措施
+
+<table>
+<tr>
+<td width="50%">
+
+**Smart Contract Security**
+- ✅ Multi-sig (3-of-5) for admin actions
+- ✅ 48-hour timelock for upgrades
+- ✅ Pull payment pattern (reentrancy protection)
+- ⏳ External audits planned Q1 2026
+- ✅ Slither + MythX + Echidna fuzzing in CI
+
+</td>
+<td width="50%">
+
+**Backend Security**
+- ✅ JWT authentication + wallet signatures
+- ✅ Role-based access control (RBAC)
+- ✅ AES-256 encryption at rest
+- ✅ TLS 1.3 for data in transit
+- ✅ Rate limiting on all endpoints
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Infrastructure Security**
+- ✅ VPC isolation + security groups
+- ✅ AWS KMS for key management
+- ✅ CloudFront WAF + DDoS protection
+- ✅ Encrypted daily backups (30-day retention)
+- ✅ Real-time security monitoring
+
+</td>
+<td width="50%">
+
+**Bug Bounty Program**
+- 💰 Up to $50,000 for critical issues
+- 💰 Up to $10,000 for high severity
+- 💰 Up to $2,000 for medium severity
+- 📧 Report: security@knowton.io
+- 📄 Details: [SECURITY.md](./SECURITY.md)
+
+</td>
+</tr>
+</table>
+
+### Compliance Framework | 合规框架
+
+**KYC/AML Policy**
+- **Level 1**: Email + wallet (up to $10k)
+- **Level 2**: Government ID (up to $100k)
+- **Level 3**: Enhanced due diligence (unlimited)
+- **Provider**: Jumio/Onfido integration
+
+**Regulatory Compliance**
+- ⚖️ GDPR (EU data protection)
+- ⚖️ CCPA (California privacy)
+- ⚖️ FinCEN MSB (if applicable)
+- ⚖️ Securities laws (for tokenized assets)
+- ⚖️ DMCA safe harbor (copyright)
+
+**Geographic Restrictions**
+- 🚫 OFAC sanctioned countries
+- 🚫 High-risk FATF jurisdictions
+- ✅ Compliant in 150+ countries
+
+**Data Protection**
+- 🔐 End-to-end encryption option
+- 🔐 Zero-knowledge architecture (where possible)
+- 🔐 GDPR-compliant data handling
+- 🔐 Right to erasure (with limitations)
+
+### Legal Framework | 法律框架
+
+**Intellectual Property**
+- 📄 Creator attestation required
+- 📄 Electronic agreements (licensing/transfer)
+- 📄 On-chain records as evidence (not replacement for legal docs)
+- 📄 DMCA takedown process
+- 📄 Dispute resolution via arbitration
+
+**Token Compliance** (Future)
+- 🪙 Utility token for governance
+- 🪙 Securities compliance for revenue-sharing features
+- 🪙 Accredited investor restrictions (if applicable)
+- 🪙 Reg D/S/A+ compliance strategy
+
+📖 **Full Details**: [LEGAL.md](./LEGAL.md) | [COMPLIANCE.md](./COMPLIANCE.md)
 
 ---
 
