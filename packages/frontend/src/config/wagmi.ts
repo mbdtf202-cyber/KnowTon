@@ -12,15 +12,4 @@ export const config = getDefaultConfig({
     sepolia,
   ],
   ssr: false,
-  // Wallet configuration
-  wallets: [
-    {
-      groupName: 'Recommended',
-      wallets: [
-        // MetaMask (default)
-        // WalletConnect (default)
-        // Coinbase Wallet (default)
-      ],
-    },
-  ],
 })
