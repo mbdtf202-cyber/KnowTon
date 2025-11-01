@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { ResumableUpload } from '../components/ResumableUpload';
 import { BatchUpload } from '../components/BatchUpload';
-import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useAccount } from 'wagmi';
 
 type UploadMode = 'single' | 'batch';
 
 export const UploadPage: React.FC = () => {
-  const { user, isConnected } = useAuth();
-  const navigate = useNavigate();
+  const { address, isConnected } = useAccount();
   const [uploadedId, setUploadedId] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<UploadMode>('single');
 
@@ -45,7 +43,7 @@ export const UploadPage: React.FC = () => {
     alert(`Some uploads failed:\n${errorMessage}`);
   };
 
-  if (!isConnected || !user) {
+  if (!isConnected || !address) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -56,7 +54,7 @@ export const UploadPage: React.FC = () => {
     );
   }
 
-  const userId = user.address;
+  const userId = address;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
