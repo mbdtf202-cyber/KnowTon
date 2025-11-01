@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { useBatchUpload, BatchFileItem } from '../hooks/useBatchUpload';
+import { useBatchUpload } from '../hooks/useBatchUpload';
+import type { BatchFileItem } from '../hooks/useBatchUpload';
 
 interface BatchUploadProps {
   userId: string;
