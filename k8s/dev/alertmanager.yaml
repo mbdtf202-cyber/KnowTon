@@ -9,90 +9,402 @@ data:
   alertmanager.yml: |
     global:
       resolve_timeout: 5m
-      # Slack webhook URL (replace with actual URL)
-      slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      # Slack webhook URL (set via environment variable or replace)
+      slack_api_url: '${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK}'
+      # SMTP configuration for email alerts
+      smtp_smarthost: '${SMTP_HOST:-smtp.gmail.com:587}'
+      smtp_from: '${SMTP_FROM:-alerts@knowton.io}'
+      smtp_auth_username: '${SMTP_USERNAME:-}'
+      smtp_auth_password: '${SMTP_PASSWORD:-}'
+      smtp_require_tls: true
 
-    # Route configuration
+    # Templates for custom formatting
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
+
+    # Route configuration with hierarchical routing
     route:
-      group_by: ['alertname', 'cluster', 'service']
+      group_by: ['alertname', 'cluster', 'service', 'severity']
       group_wait: 10s
-      group_interval: 10s
-      repeat_interval: 12h
+      group_interval: 5m
+      repeat_interval: 4h
       receiver: 'default'
+      
       routes:
-        # Critical alerts go to PagerDuty and Slack
+        # Critical alerts - multiple channels with escalation
         - match:
             severity: critical
           receiver: 'critical-alerts'
+          group_wait: 5s
+          repeat_interval: 30m
           continue: true
+          routes:
+            # Database critical alerts
+            - match:
+                category: database
+              receiver: 'database-critical'
+              continue: true
+            
+            # Security critical alerts
+            - match:
+                category: security
+              receiver: 'security-critical'
+              continue: true
+            
+            # Blockchain critical alerts
+            - match:
+                category: blockchain
+              receiver: 'blockchain-critical'
+              continue: true
         
-        # Warning alerts go to Slack
+        # Warning alerts - Slack and email
         - match:
             severity: warning
           receiver: 'warning-alerts'
+          group_wait: 30s
+          repeat_interval: 2h
           continue: true
+          routes:
+            # Performance warnings
+            - match:
+                category: performance
+              receiver: 'performance-warnings'
+            
+            # Resource warnings
+            - match:
+                category: resources
+              receiver: 'resource-warnings'
         
-        # Info alerts go to Slack (low priority)
+        # Info alerts - Slack only (low priority)
         - match:
             severity: info
           receiver: 'info-alerts'
+          group_wait: 5m
+          repeat_interval: 12h
+        
+        # Business metrics alerts
+        - match:
+            category: business
+          receiver: 'business-alerts'
+          group_wait: 1m
+          repeat_interval: 6h
+        
+        # Data sync alerts
+        - match:
+            component: data-sync
+          receiver: 'data-sync-alerts'
+          group_wait: 30s
+          repeat_interval: 1h
+        
+        # Audit alerts
+        - match:
+            component: audit
+          receiver: 'audit-alerts'
+          group_wait: 10s
+          repeat_interval: 30m
 
-    # Inhibition rules
+    # Inhibition rules - prevent alert spam
     inhibit_rules:
-      # Inhibit warning if critical is firing
+      # Inhibit warning if critical is firing for same alert
       - source_match:
           severity: 'critical'
         target_match:
           severity: 'warning'
         equal: ['alertname', 'cluster', 'service']
+      
+      # Inhibit info if warning is firing
+      - source_match:
+          severity: 'warning'
+        target_match:
+          severity: 'info'
+        equal: ['alertname', 'cluster', 'service']
+      
+      # Inhibit service-specific alerts if service is down
+      - source_match:
+          alertname: 'ServiceDown'
+        target_match_re:
+          alertname: '.*'
+        equal: ['service']
+      
+      # Inhibit high error rate if service is down
+      - source_match:
+          alertname: 'ServiceDown'
+        target_match:
+          alertname: 'HighErrorRate'
+        equal: ['service']
+      
+      # Inhibit database connection alerts if database is down
+      - source_match:
+          alertname: 'PostgreSQLDown'
+        target_match:
+          alertname: 'HighDatabaseConnections'
+      
+      # Inhibit data sync lag if service is down
+      - source_match:
+          alertname: 'DataSyncServiceDown'
+        target_match_re:
+          alertname: 'DataSync.*'
+        equal: ['component']
 
     # Receivers configuration
     receivers:
+      # Default receiver - all alerts
       - name: 'default'
         slack_configs:
           - channel: '#knowton-alerts'
-            title: 'KnowTon Platform Alert'
-            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+            username: 'KnowTon AlertManager'
+            icon_emoji: ':bell:'
+            title: '{{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Labels.alertname }}
+              *Severity:* {{ .Labels.severity }}
+              *Service:* {{ .Labels.service | default "N/A" }}
+              *Description:* {{ .Annotations.description }}
+              *Runbook:* {{ .Annotations.runbook_url | default "N/A" }}
+              {{ end }}
             send_resolved: true
+            actions:
+              - type: button
+                text: 'View in Grafana'
+                url: 'http://grafana:3000/alerting/list'
+              - type: button
+                text: 'View Logs'
+                url: 'http://grafana:3000/explore'
 
+      # Critical alerts - Slack, Email, Discord, PagerDuty
       - name: 'critical-alerts'
         slack_configs:
           - channel: '#knowton-critical'
+            username: 'KnowTon Critical Alerts'
+            icon_emoji: ':rotating_light:'
             title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+            title_link: 'http://grafana:3000/alerting/list'
             text: |
-              *Alert:* {{ .GroupLabels.alertname }}
-              *Severity:* {{ .CommonLabels.severity }}
-              *Service:* {{ .CommonLabels.service }}
-              *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+              {{ range .Alerts }}
+              *Alert:* {{ .Labels.alertname }}
+              *Severity:* {{ .Labels.severity }}
+              *Service:* {{ .Labels.service | default "N/A" }}
+              *Category:* {{ .Labels.category | default "N/A" }}
+              *Description:* {{ .Annotations.description }}
+              *Summary:* {{ .Annotations.summary }}
+              *Runbook:* {{ .Annotations.runbook_url | default "N/A" }}
+              *Started:* {{ .StartsAt | date "2006-01-02 15:04:05" }}
+              {{ end }}
             send_resolved: true
             color: 'danger'
-        # Uncomment to enable PagerDuty
+            actions:
+              - type: button
+                text: 'Acknowledge'
+                url: 'http://alertmanager:9093'
+              - type: button
+                text: 'View Metrics'
+                url: 'http://grafana:3000'
+        
+        email_configs:
+          - to: '${ALERT_EMAIL_TO:-ops@knowton.io}'
+            headers:
+              Subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+            html: |
+              <h2>Critical Alert: {{ .GroupLabels.alertname }}</h2>
+              {{ range .Alerts }}
+              <p><strong>Service:</strong> {{ .Labels.service | default "N/A" }}</p>
+              <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+              <p><strong>Started:</strong> {{ .StartsAt | date "2006-01-02 15:04:05" }}</p>
+              {{ end }}
+            send_resolved: true
+        
+        # Discord webhook
+        webhook_configs:
+          - url: '${DISCORD_WEBHOOK_URL:-}'
+            send_resolved: true
+        
+        # PagerDuty integration (uncomment and configure)
         # pagerduty_configs:
-        #   - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        #   - service_key: '${PAGERDUTY_SERVICE_KEY}'
         #     description: '{{ .GroupLabels.alertname }}: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        #     severity: 'critical'
+        #     client: 'KnowTon AlertManager'
+        #     client_url: 'http://alertmanager:9093'
 
+      # Database critical alerts
+      - name: 'database-critical'
+        slack_configs:
+          - channel: '#knowton-database'
+            username: 'Database Alerts'
+            icon_emoji: ':database:'
+            title: '🔴 DATABASE CRITICAL: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Database:* {{ .Labels.datname | default .Labels.service }}
+              *Issue:* {{ .Annotations.description }}
+              *Action Required:* Immediate investigation needed
+              {{ end }}
+            color: 'danger'
+            send_resolved: true
+        
+        email_configs:
+          - to: '${DBA_EMAIL:-dba@knowton.io}'
+            headers:
+              Subject: 'DATABASE CRITICAL: {{ .GroupLabels.alertname }}'
+
+      # Security critical alerts
+      - name: 'security-critical'
+        slack_configs:
+          - channel: '#knowton-security'
+            username: 'Security Alerts'
+            icon_emoji: ':shield:'
+            title: '🛡️ SECURITY CRITICAL: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Security Event:* {{ .Labels.alertname }}
+              *Details:* {{ .Annotations.description }}
+              *IP Address:* {{ .Labels.ip_address | default "N/A" }}
+              *User:* {{ .Labels.user | default "N/A" }}
+              *Immediate Action Required*
+              {{ end }}
+            color: 'danger'
+            send_resolved: true
+        
+        email_configs:
+          - to: '${SECURITY_EMAIL:-security@knowton.io}'
+            headers:
+              Subject: 'SECURITY ALERT: {{ .GroupLabels.alertname }}'
+              Priority: 'urgent'
+
+      # Blockchain critical alerts
+      - name: 'blockchain-critical'
+        slack_configs:
+          - channel: '#knowton-blockchain'
+            username: 'Blockchain Alerts'
+            icon_emoji: ':link:'
+            title: '⛓️ BLOCKCHAIN CRITICAL: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Issue:* {{ .Annotations.description }}
+              *Network:* {{ .Labels.network | default "Arbitrum" }}
+              *Contract:* {{ .Labels.contract | default "N/A" }}
+              {{ end }}
+            color: 'danger'
+            send_resolved: true
+
+      # Warning alerts
       - name: 'warning-alerts'
         slack_configs:
           - channel: '#knowton-warnings'
+            username: 'KnowTon Warnings'
+            icon_emoji: ':warning:'
             title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
             text: |
-              *Alert:* {{ .GroupLabels.alertname }}
-              *Severity:* {{ .CommonLabels.severity }}
-              *Service:* {{ .CommonLabels.service }}
-              *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+              {{ range .Alerts }}
+              *Alert:* {{ .Labels.alertname }}
+              *Service:* {{ .Labels.service | default "N/A" }}
+              *Category:* {{ .Labels.category | default "N/A" }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
             send_resolved: true
             color: 'warning'
 
+      # Performance warnings
+      - name: 'performance-warnings'
+        slack_configs:
+          - channel: '#knowton-performance'
+            username: 'Performance Monitor'
+            icon_emoji: ':chart_with_downwards_trend:'
+            title: '📉 Performance Issue: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Service:* {{ .Labels.service }}
+              *Metric:* {{ .Annotations.description }}
+              *Current Value:* {{ .Value }}
+              {{ end }}
+            send_resolved: true
+
+      # Resource warnings
+      - name: 'resource-warnings'
+        slack_configs:
+          - channel: '#knowton-resources'
+            username: 'Resource Monitor'
+            icon_emoji: ':bar_chart:'
+            title: '📊 Resource Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Container:* {{ .Labels.container | default .Labels.pod }}
+              *Issue:* {{ .Annotations.description }}
+              *Namespace:* {{ .Labels.namespace }}
+              {{ end }}
+            send_resolved: true
+
+      # Info alerts
       - name: 'info-alerts'
         slack_configs:
           - channel: '#knowton-info'
+            username: 'KnowTon Info'
+            icon_emoji: ':information_source:'
             title: 'ℹ️ INFO: {{ .GroupLabels.alertname }}'
             text: |
-              *Alert:* {{ .GroupLabels.alertname }}
-              *Service:* {{ .CommonLabels.service }}
-              *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+              {{ range .Alerts }}
+              *Alert:* {{ .Labels.alertname }}
+              *Service:* {{ .Labels.service | default "N/A" }}
+              *Info:* {{ .Annotations.description }}
+              {{ end }}
             send_resolved: true
             color: 'good'
+
+      # Business alerts
+      - name: 'business-alerts'
+        slack_configs:
+          - channel: '#knowton-business'
+            username: 'Business Metrics'
+            icon_emoji: ':chart_with_upwards_trend:'
+            title: '💼 Business Metric: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Metric:* {{ .Labels.alertname }}
+              *Details:* {{ .Annotations.description }}
+              *Value:* {{ .Value }}
+              {{ end }}
+            send_resolved: true
+        
+        email_configs:
+          - to: '${BUSINESS_EMAIL:-business@knowton.io}'
+            headers:
+              Subject: 'Business Metric Alert: {{ .GroupLabels.alertname }}'
+
+      # Data sync alerts
+      - name: 'data-sync-alerts'
+        slack_configs:
+          - channel: '#knowton-data-sync'
+            username: 'Data Sync Monitor'
+            icon_emoji: ':arrows_counterclockwise:'
+            title: '🔄 Data Sync: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Table:* {{ .Labels.table | default "N/A" }}
+              *Issue:* {{ .Annotations.description }}
+              *Lag:* {{ .Value }}s
+              {{ end }}
+            send_resolved: true
+
+      # Audit alerts
+      - name: 'audit-alerts'
+        slack_configs:
+          - channel: '#knowton-audit'
+            username: 'Audit System'
+            icon_emoji: ':memo:'
+            title: '📝 Audit Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Event:* {{ .Labels.event_type | default .Labels.alertname }}
+              *Details:* {{ .Annotations.description }}
+              *IP:* {{ .Labels.ip_address | default "N/A" }}
+              {{ end }}
+            send_resolved: true
+        
+        email_configs:
+          - to: '${AUDIT_EMAIL:-audit@knowton.io}'
+            headers:
+              Subject: 'Audit Alert: {{ .GroupLabels.alertname }}'
 
 ---
 # AlertManager PersistentVolumeClaim
@@ -141,6 +453,8 @@ spec:
           volumeMounts:
             - name: alertmanager-config
               mountPath: /etc/alertmanager
+            - name: alertmanager-templates
+              mountPath: /etc/alertmanager/templates
             - name: alertmanager-storage
               mountPath: /alertmanager
           resources:
@@ -166,6 +480,9 @@ spec:
         - name: alertmanager-config
           configMap:
             name: alertmanager-config
+        - name: alertmanager-templates
+          configMap:
+            name: alertmanager-templates
         - name: alertmanager-storage
           persistentVolumeClaim:
             claimName: alertmanager-pvc

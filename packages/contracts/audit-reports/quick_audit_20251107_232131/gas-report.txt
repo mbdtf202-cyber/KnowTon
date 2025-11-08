@@ -1,0 +1,27 @@
+
+> @knowton/contracts@1.0.0 test
+> hardhat test
+
+An unexpected error occurred:
+
+Error: Cannot find module '/Users/zhongjialiu/Desktop/KnowTon/node_modules/hardhat/types/network' imported from /Users/zhongjialiu/Desktop/KnowTon/node_modules/@nomicfoundation/hardhat-network-helpers/dist/src/type-extensions.js
+    at finalizeResolution (node:internal/modules/esm/resolve:274:11)
+    at moduleResolve (node:internal/modules/esm/resolve:864:10)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at ModuleLoader.#cachedDefaultResolve (node:internal/modules/esm/loader:757:20)
+    at ModuleLoader.#resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:793:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:816:52)
+    at ModuleLoader.#cachedResolveSync (node:internal/modules/esm/loader:776:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:474:50)
+    at ModuleJobSync.#link (node:internal/modules/esm/module_job:447:34)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:420:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Users/zhongjialiu/Desktop/KnowTon/node_modules/hardhat/types/network'
+}
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /Users/zhongjialiu/Desktop/KnowTon/packages/contracts
+npm error workspace @knowton/contracts@1.0.0
+npm error location /Users/zhongjialiu/Desktop/KnowTon/packages/contracts
+npm error command failed
+npm error command sh -c hardhat test

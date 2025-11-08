@@ -21,9 +21,15 @@
     "check:deploy": "bash scripts/check-deployment-ready.sh",
     "test:deploy": "bash scripts/test-deployment-flow.sh",
     "audit": "bash scripts/security-audit.sh",
+    "audit:quick": "bash scripts/quick-audit.sh",
     "audit:slither": "slither . --config-file slither.config.json",
     "audit:mythril": "myth analyze contracts/IPBondSimple.sol --solv 0.8.20",
     "audit:echidna": "echidna test/echidna/IPBondFuzzing.sol --config echidna.config.yaml",
+    "test:security": "hardhat test test/security/*.test.ts",
+    "test:reentrancy": "hardhat test test/security/ReentrancyTests.test.ts",
+    "test:overflow": "hardhat test test/security/IntegerOverflowTests.test.ts",
+    "test:access": "hardhat test test/security/AccessControlTests.test.ts",
+    "report:security": "hardhat run scripts/generate-security-report.ts",
     "size": "hardhat size-contracts"
   },
   "dependencies": {

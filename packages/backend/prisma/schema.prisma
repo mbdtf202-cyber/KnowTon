@@ -7,8 +7,119 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Multi-tenancy models
+model Tenant {
+  id                String   @id @default(uuid())
+  name              String
+  slug              String   @unique
+  domain            String?  @unique
+  status            String   @default("active") // active, suspended, inactive
+  plan              String   @default("basic") // basic, professional, enterprise
+  maxUsers          Int      @default(10)
+  maxStorage        BigInt   @default(10737418240) // 10GB in bytes
+  customBranding    Json?
+  features          Json?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  users             User[]
+  contents          Content[]
+  tenantConfig      TenantConfig?
+  apiKeys           TenantApiKey[]
+  usageMetrics      TenantUsageMetric[]
+  
+  @@index([slug])
+  @@index([domain])
+  @@index([status])
+  @@map("tenants")
+}
+
+model TenantConfig {
+  id                String   @id @default(uuid())
+  tenantId          String   @unique
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Branding
+  logoUrl           String?
+  primaryColor      String?
+  secondaryColor    String?
+  customCss         String?
+  
+  // Features
+  enableNFT         Boolean  @default(true)
+  enableBonds       Boolean  @default(true)
+  enableFractionalization Boolean @default(true)
+  enableEnterprise  Boolean  @default(false)
+  
+  // Limits
+  maxContentSize    BigInt   @default(2147483648) // 2GB
+  maxUploadRate     Int      @default(100) // MB/s
+  rateLimitPerMin   Int      @default(100)
+  
+  // Payment
+  stripeAccountId   String?
+  paymentMethods    Json?
+  
+  // Notifications
+  emailSettings     Json?
+  webhookUrl        String?
+  
+  // Security
+  allowedDomains    String[]
+  ipWhitelist       String[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("tenant_configs")
+}
+
+model TenantApiKey {
+  id                String   @id @default(uuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  name              String
+  key               String   @unique
+  secret            String
+  permissions       Json     // Array of permissions
+  isActive          Boolean  @default(true)
+  expiresAt         DateTime?
+  lastUsedAt        DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([tenantId])
+  @@index([key])
+  @@map("tenant_api_keys")
+}
+
+model TenantUsageMetric {
+  id                String   @id @default(uuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  date              DateTime @default(now())
+  activeUsers       Int      @default(0)
+  storageUsed       BigInt   @default(0)
+  bandwidthUsed     BigInt   @default(0)
+  apiCalls          Int      @default(0)
+  contentCreated    Int      @default(0)
+  revenue           Decimal  @default(0) @db.Decimal(20, 2)
+  
+  @@unique([tenantId, date])
+  @@index([tenantId])
+  @@index([date])
+  @@map("tenant_usage_metrics")
+}
+
 model User {
   id                String    @id @default(uuid())
+  tenantId          String?
+  tenant            Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   email             String?   @unique
   password          String?
   walletAddress     String?   @unique
@@ -30,6 +141,7 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  @@index([tenantId])
   @@index([email])
   @@index([walletAddress])
   @@index([emailVerifyToken])
@@ -40,23 +152,23 @@ model User {
 }
 
 model Creator {
-  id                    String              @id @default(uuid())
-  walletAddress         String              @unique
-  did                   String              @unique
-  displayName           String
-  bio                   String?
-  avatar                String?
-  website               String?
-  social                Json?
-  creatorType           String              @default("individual") // individual, institution, enterprise
-  verificationStatus    String              @default("pending") // pending, approved, rejected
-  verificationNote      String? // Admin notes for rejection/approval
-  verifiedAt            DateTime?
-  verifiedBy            String? // Admin user ID who verified
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  contents              Content[]
-  portfolioItems        CreatorPortfolio[]
+  id                 String             @id @default(uuid())
+  walletAddress      String             @unique
+  did                String             @unique
+  displayName        String
+  bio                String?
+  avatar             String?
+  website            String?
+  social             Json?
+  creatorType        String             @default("individual") // individual, institution, enterprise
+  verificationStatus String             @default("pending") // pending, approved, rejected
+  verificationNote   String? // Admin notes for rejection/approval
+  verifiedAt         DateTime?
+  verifiedBy         String? // Admin user ID who verified
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  contents           Content[]
+  portfolioItems     CreatorPortfolio[]
 
   @@index([walletAddress])
   @@index([verificationStatus])
@@ -80,6 +192,8 @@ model CreatorPortfolio {
 
 model Content {
   id             String   @id @default(uuid())
+  tenantId       String?
+  tenant         Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   creatorAddress String
   title          String
   description    String?
@@ -98,6 +212,7 @@ model Content {
   updatedAt      DateTime @updatedAt
   creator        Creator  @relation(fields: [creatorAddress], references: [walletAddress])
 
+  @@index([tenantId])
   @@index([creatorAddress])
   @@index([contentHash])
   @@index([aiFingerprint])
@@ -378,21 +493,39 @@ model Repayment {
   @@map("repayments")
 }
 
+model SSOProvider {
+  id         String   @id @default(uuid())
+  userId     String
+  provider   String // google, microsoft, okta, etc.
+  type       String // oauth2, saml
+  externalId String // User ID from the SSO provider
+  metadata   Json? // Additional provider-specific data
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+  @@index([externalId])
+  @@map("sso_providers")
+}
+
 model Upload {
-  id                    String                  @id
-  userId                String
-  filename              String
-  filetype              String
-  filesize              BigInt
-  fileHash              String?
-  uploadOffset          BigInt                  @default(0)
-  status                String                  @default("uploading") // uploading, validating, processing, completed, failed, rejected
-  error                 String?
-  metadata              Json?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  completedAt           DateTime?
-  plagiarismDetections  PlagiarismDetection[]
+  id                   String                @id
+  userId               String
+  filename             String
+  filetype             String
+  filesize             BigInt
+  fileHash             String?
+  uploadOffset         BigInt                @default(0)
+  status               String                @default("uploading") // uploading, validating, processing, completed, failed, rejected
+  error                String?
+  metadata             Json?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  completedAt          DateTime?
+  plagiarismDetections PlagiarismDetection[]
+  previewViews         PreviewView[]
 
   @@index([userId])
   @@index([status])
@@ -400,23 +533,23 @@ model Upload {
 }
 
 model PlagiarismDetection {
-  id                String                @id @default(uuid())
-  uploadId          String
-  contentUrl        String
-  contentType       String // image, audio, video, text
-  isPlagiarism      Boolean               @default(false)
-  maxSimilarity     Float                 @default(0)
-  threshold         Float                 @default(0.85)
-  totalMatches      Int                   @default(0)
-  similarContent    Json // Array of similar content items
-  status            String                @default("detected") // detected, appealed, resolved, dismissed
-  action            String? // warning, rejected, approved
-  detectedAt        DateTime              @default(now())
-  resolvedAt        DateTime?
-  resolvedBy        String? // Admin user ID
-  resolutionNote    String?
-  upload            Upload                @relation(fields: [uploadId], references: [id], onDelete: Cascade)
-  appeals           PlagiarismAppeal[]
+  id             String             @id @default(uuid())
+  uploadId       String
+  contentUrl     String
+  contentType    String // image, audio, video, text
+  isPlagiarism   Boolean            @default(false)
+  maxSimilarity  Float              @default(0)
+  threshold      Float              @default(0.85)
+  totalMatches   Int                @default(0)
+  similarContent Json // Array of similar content items
+  status         String             @default("detected") // detected, appealed, resolved, dismissed
+  action         String? // warning, rejected, approved
+  detectedAt     DateTime           @default(now())
+  resolvedAt     DateTime?
+  resolvedBy     String? // Admin user ID
+  resolutionNote String?
+  upload         Upload             @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  appeals        PlagiarismAppeal[]
 
   @@index([uploadId])
   @@index([status])
@@ -425,17 +558,17 @@ model PlagiarismDetection {
 }
 
 model PlagiarismAppeal {
-  id                    String              @id @default(uuid())
-  detectionId           String
-  userId                String
-  reason                String
-  evidence              Json? // URLs, documents, etc.
-  status                String              @default("pending") // pending, approved, rejected
-  submittedAt           DateTime            @default(now())
-  reviewedAt            DateTime?
-  reviewedBy            String? // Admin user ID
-  reviewNote            String?
-  detection             PlagiarismDetection @relation(fields: [detectionId], references: [id], onDelete: Cascade)
+  id          String              @id @default(uuid())
+  detectionId String
+  userId      String
+  reason      String
+  evidence    Json? // URLs, documents, etc.
+  status      String              @default("pending") // pending, approved, rejected
+  submittedAt DateTime            @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String? // Admin user ID
+  reviewNote  String?
+  detection   PlagiarismDetection @relation(fields: [detectionId], references: [id], onDelete: Cascade)
 
   @@index([detectionId])
   @@index([userId])
@@ -444,21 +577,21 @@ model PlagiarismAppeal {
 }
 
 model Payment {
-  id                    String              @id @default(uuid())
+  id                    String         @id @default(uuid())
   userId                String
   contentId             String?
-  amount                Decimal             @db.Decimal(20, 2)
-  currency              String              @default("USD") // USD, EUR, CNY, JPY
-  paymentMethod         String              // stripe, crypto, alipay, wechat
-  stripePaymentIntentId String?             @unique
+  amount                Decimal        @db.Decimal(20, 2)
+  currency              String         @default("USD") // USD, EUR, CNY, JPY
+  paymentMethod         String // stripe, crypto, alipay, wechat
+  stripePaymentIntentId String?        @unique
   stripeCustomerId      String?
-  status                String              @default("pending") // pending, processing, succeeded, failed, canceled, refunded
+  status                String         @default("pending") // pending, processing, succeeded, failed, canceled, refunded
   metadata              Json?
   installmentPlan       Json? // { months: 3, amountPerMonth: 33.33 }
   threeDSecureStatus    String? // required, succeeded, failed
   errorMessage          String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
   completedAt           DateTime?
   refunds               Refund[]
   webhookEvents         WebhookEvent[]
@@ -472,16 +605,16 @@ model Payment {
 }
 
 model Refund {
-  id                String              @id @default(uuid())
-  paymentId         String
-  amount            Decimal             @db.Decimal(20, 2)
-  currency          String
-  reason            String?
-  status            String              @default("pending") // pending, succeeded, failed
-  stripeRefundId    String?             @unique
-  createdAt         DateTime            @default(now())
-  processedAt       DateTime?
-  payment           Payment             @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  id             String    @id @default(uuid())
+  paymentId      String
+  amount         Decimal   @db.Decimal(20, 2)
+  currency       String
+  reason         String?
+  status         String    @default("pending") // pending, succeeded, failed
+  stripeRefundId String?   @unique
+  createdAt      DateTime  @default(now())
+  processedAt    DateTime?
+  payment        Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
   @@index([paymentId])
   @@index([status])
@@ -489,19 +622,388 @@ model Refund {
 }
 
 model WebhookEvent {
-  id                String              @id @default(uuid())
-  paymentId         String?
-  eventType         String // payment_intent.succeeded, payment_intent.payment_failed, etc.
-  stripeEventId     String              @unique
-  data              Json
-  processed         Boolean             @default(false)
-  processedAt       DateTime?
-  createdAt         DateTime            @default(now())
-  payment           Payment?            @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  id            String    @id @default(uuid())
+  paymentId     String?
+  eventType     String // payment_intent.succeeded, payment_intent.payment_failed, etc.
+  stripeEventId String    @unique
+  data          Json
+  processed     Boolean   @default(false)
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  payment       Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
-  @@index([paymentId])
   @@index([eventType])
   @@index([processed])
-  @@index([stripeEventId])
   @@map("webhook_events")
+}
+
+model StripeConnectAccount {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  stripeAccountId String   @unique
+  email           String
+  country         String
+  businessType    String   @default("individual") // individual, company
+  status          String   @default("pending") // pending, active, restricted, disabled
+  payoutsEnabled  Boolean  @default(false)
+  capabilities    Json?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  payouts         Payout[]
+
+  @@index([stripeAccountId])
+  @@index([userId])
+  @@index([status])
+  @@map("stripe_connect_accounts")
+}
+
+model Payout {
+  id               String                @id @default(uuid())
+  userId           String
+  payoutMethod     String                @default("stripe") // stripe, paypal, crypto
+  stripeAccountId  String?
+  stripeTransferId String?               @unique
+  paypalPayoutId   String?               @unique
+  paypalEmail      String?
+  amount           Decimal               @db.Decimal(20, 2)
+  currency         String                @default("USD") // USD, EUR, CNY, JPY
+  fee              Decimal               @db.Decimal(20, 2)
+  netAmount        Decimal               @db.Decimal(20, 2)
+  description      String?
+  status           String                @default("pending") // pending, processing, completed, failed
+  failureReason    String?
+  retryCount       Int                   @default(0)
+  lastRetryAt      DateTime?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  completedAt      DateTime?
+  account          StripeConnectAccount? @relation(fields: [stripeAccountId], references: [stripeAccountId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeAccountId])
+  @@index([paypalPayoutId])
+  @@index([status])
+  @@index([stripeTransferId])
+  @@index([createdAt])
+  @@index([payoutMethod])
+  @@map("payouts")
+}
+
+model PayPalAccount {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  paypalEmail   String
+  accountStatus String    @default("pending") // pending, verified, restricted
+  verifiedAt    DateTime?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([paypalEmail])
+  @@index([accountStatus])
+  @@map("paypal_accounts")
+}
+
+model CryptoWithdrawal {
+  id            String    @id @default(uuid())
+  userId        String
+  walletAddress String
+  amount        Decimal   @db.Decimal(20, 8)
+  amountUSD     Decimal   @db.Decimal(20, 2)
+  token         String // ETH, USDC, USDT
+  tokenAmount   String // Exact token amount as string
+  exchangeRate  Decimal   @db.Decimal(20, 8)
+  gasEstimate   String?
+  gasFee        Decimal?  @db.Decimal(20, 8)
+  txHash        String?   @unique
+  status        String    @default("pending") // pending, processing, confirmed, failed
+  confirmations Int       @default(0)
+  blockNumber   Int?
+  failureReason String?
+  kycVerified   Boolean   @default(false)
+  kycLevel      Int       @default(0)
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+
+  @@index([userId])
+  @@index([walletAddress])
+  @@index([status])
+  @@index([txHash])
+  @@map("crypto_withdrawals")
+}
+
+model PreviewView {
+  id       String   @id @default(uuid())
+  uploadId String
+  userId   String
+  viewedAt DateTime @default(now())
+  metadata Json? // duration, quality, device, ipAddress
+  upload   Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@index([uploadId])
+  @@index([userId])
+  @@index([viewedAt])
+  @@map("preview_views")
+}
+
+model EnterpriseLicense {
+  id              String                   @id @default(uuid())
+  licenseKey      String                   @unique
+  enterpriseId    String
+  contentId       String
+  totalSeats      Int
+  usedSeats       Int                      @default(0)
+  pricePerSeat    Decimal                  @db.Decimal(20, 2)
+  totalAmount     Decimal                  @db.Decimal(20, 2)
+  discountPercent Int                      @default(0)
+  currency        String                   @default("USD")
+  status          String                   @default("active") // active, expired, suspended, canceled
+  expiresAt       DateTime?
+  metadata        Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  enterprise      EnterpriseAccount        @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  seats           EnterpriseLicenseSeat[]
+  invoices        EnterpriseInvoice[]
+  usageRecords    EnterpriseLicenseUsage[]
+
+  @@index([enterpriseId])
+  @@index([contentId])
+  @@index([licenseKey])
+  @@index([status])
+  @@map("enterprise_licenses")
+}
+
+model EnterpriseAccount {
+  id             String              @id @default(uuid())
+  userId         String              @unique
+  companyName    String
+  companyEmail   String
+  companyAddress String?
+  taxId          String?
+  contactName    String
+  contactEmail   String
+  contactPhone   String?
+  billingEmail   String
+  accountType    String              @default("standard") // standard, premium, enterprise
+  status         String              @default("active") // active, suspended, closed
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  licenses       EnterpriseLicense[]
+  invoices       EnterpriseInvoice[]
+  purchases      BulkPurchase[]
+
+  @@index([userId])
+  @@index([companyEmail])
+  @@index([status])
+  @@map("enterprise_accounts")
+}
+
+model EnterpriseLicenseSeat {
+  id         String            @id @default(uuid())
+  licenseId  String
+  userEmail  String
+  userId     String?
+  status     String            @default("active") // active, inactive, revoked
+  assignedAt DateTime          @default(now())
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  metadata   Json?
+  license    EnterpriseLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@unique([licenseId, userEmail])
+  @@index([licenseId])
+  @@index([userEmail])
+  @@index([userId])
+  @@index([status])
+  @@map("enterprise_license_seats")
+}
+
+model EnterpriseLicenseUsage {
+  id        String            @id @default(uuid())
+  licenseId String
+  seatId    String?
+  userEmail String
+  action    String // access, download, view
+  duration  Int? // seconds for video/audio
+  metadata  Json?
+  timestamp DateTime          @default(now())
+  license   EnterpriseLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@index([licenseId])
+  @@index([seatId])
+  @@index([userEmail])
+  @@index([timestamp])
+  @@map("enterprise_license_usage")
+}
+
+model BulkPurchase {
+  id              String              @id @default(uuid())
+  enterpriseId    String
+  purchaseOrderId String              @unique
+  totalItems      Int
+  totalAmount     Decimal             @db.Decimal(20, 2)
+  discountPercent Int                 @default(0)
+  discountAmount  Decimal             @db.Decimal(20, 2)
+  finalAmount     Decimal             @db.Decimal(20, 2)
+  currency        String              @default("USD")
+  paymentMethod   String // stripe, invoice, wire_transfer
+  paymentStatus   String              @default("pending") // pending, processing, completed, failed
+  paymentId       String?
+  items           Json // Array of { contentId, quantity, price, seats }
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  completedAt     DateTime?
+  enterprise      EnterpriseAccount   @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  invoices        EnterpriseInvoice[]
+
+  @@index([enterpriseId])
+  @@index([purchaseOrderId])
+  @@index([paymentStatus])
+  @@map("bulk_purchases")
+}
+
+model EnterpriseInvoice {
+  id            String             @id @default(uuid())
+  invoiceNumber String             @unique
+  enterpriseId  String
+  licenseId     String?
+  purchaseId    String?
+  amount        Decimal            @db.Decimal(20, 2)
+  tax           Decimal            @db.Decimal(20, 2)
+  totalAmount   Decimal            @db.Decimal(20, 2)
+  currency      String             @default("USD")
+  status        String             @default("draft") // draft, sent, paid, overdue, canceled
+  dueDate       DateTime?
+  paidAt        DateTime?
+  lineItems     Json // Array of { description, quantity, unitPrice, amount }
+  notes         String?
+  pdfUrl        String?
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  enterprise    EnterpriseAccount  @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  license       EnterpriseLicense? @relation(fields: [licenseId], references: [id], onDelete: SetNull)
+  purchase      BulkPurchase?      @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  @@index([enterpriseId])
+  @@index([licenseId])
+  @@index([purchaseId])
+  @@index([invoiceNumber])
+  @@index([status])
+  @@index([dueDate])
+  @@map("enterprise_invoices")
+}
+
+model EncryptionKey {
+  id           String    @id
+  encryptedKey String // Encrypted data key (encrypted by KMS or local master key)
+  algorithm    String    @default("aes-256-cbc")
+  purpose      String // content-encryption, metadata-encryption, etc.
+  status       String    @default("active") // active, rotated, revoked
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+  @@index([purpose])
+  @@index([createdAt])
+  @@map("encryption_keys")
+}
+
+model EncryptedContent {
+  id             String   @id @default(uuid())
+  contentId      String   @unique
+  encryptedPath  String // Path to encrypted file
+  originalPath   String? // Path to original file (if kept)
+  keyId          String // Reference to encryption key
+  iv             String // Initialization vector (hex)
+  algorithm      String   @default("aes-256-cbc")
+  originalSize   BigInt
+  encryptedSize  BigInt
+  encryptionTime Int // milliseconds
+  isSegmented    Boolean  @default(false)
+  segmentCount   Int      @default(1)
+  metadata       Json? // Additional encryption metadata
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([contentId])
+  @@index([keyId])
+  @@map("encrypted_contents")
+}
+
+model ContentAccessLog {
+  id            String   @id @default(uuid())
+  contentId     String
+  userId        String
+  accessType    String // download, stream, preview
+  deviceId      String? // Device fingerprint
+  ipAddress     String
+  userAgent     String?
+  accessGranted Boolean  @default(true)
+  denialReason  String? // If access denied
+  duration      Int? // seconds for streaming
+  bytesServed   BigInt? // bytes transferred
+  metadata      Json?
+  timestamp     DateTime @default(now())
+
+  @@index([contentId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([accessGranted])
+  @@map("content_access_logs")
+}
+
+model UserDevice {
+  id              String    @id @default(uuid())
+  userId          String
+  deviceId        String // Generated device fingerprint ID
+  deviceName      String // Human-readable device name
+  deviceInfo      Json // Full device information
+  fingerprintHash String // SHA-256 hash of device characteristics
+  isActive        Boolean   @default(true)
+  lastUsedAt      DateTime  @default(now())
+  firstSeenAt     DateTime  @default(now())
+  revokedAt       DateTime?
+  accessCount     Int       @default(0)
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@index([deviceId])
+  @@index([isActive])
+  @@index([lastUsedAt])
+  @@map("user_devices")
+}
+
+model Purchase {
+  id              String    @id @default(uuid())
+  userId          String
+  contentId       String
+  amount          Decimal   @db.Decimal(20, 2)
+  currency        String    @default("USD")
+  paymentMethod   String // stripe, crypto, alipay, wechat
+  paymentTxHash   String?
+  status          String    @default("pending") // pending, completed, refunded
+  accessToken     String?
+  accessExpiresAt DateTime?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  refundedAt      DateTime?
+
+  @@index([userId])
+  @@index([contentId])
+  @@index([status])
+  @@index([accessToken])
+  @@map("purchases")
 }

@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: data-sync-service
   namespace: knowton-dev
+  labels:
+    app: data-sync-service
+    component: backend
 spec:
   replicas: 2
   selector:
@@ -12,48 +15,116 @@ spec:
     metadata:
       labels:
         app: data-sync-service
+        component: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/v1/data-sync/metrics"
     spec:
       containers:
-      - name: data-sync-service
-        image: ghcr.io/knowton/data-sync-service:latest
+      - name: data-sync
+        image: ghcr.io/knowton/backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
         env:
         - name: NODE_ENV
-          value: "development"
+          value: "production"
+        - name: PORT
+          value: "3000"
         - name: KAFKA_BROKERS
-          value: "kafka-0.kafka-headless:9092,kafka-1.kafka-headless:9092,kafka-2.kafka-headless:9092"
+          value: "kafka:9092"
         - name: REDIS_URL
-          value: "redis://redis-service:6379"
+          value: "redis://redis:6379"
+        - name: CLICKHOUSE_HOST
+          value: "http://clickhouse:8123"
+        - name: CLICKHOUSE_DATABASE
+          value: "knowton"
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: username
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: password
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch:9200"
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: postgres-secret
-              key: connection-string
+              name: postgres-credentials
+              key: database-url
         resources:
           requests:
             memory: "512Mi"
-            cpu: "500m"
+            cpu: "250m"
           limits:
             memory: "1Gi"
-            cpu: "1000m"
+            cpu: "500m"
         livenessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - "ps aux | grep node"
-          initialDelaySeconds: 60
-          periodSeconds: 30
+          httpGet:
+            path: /api/v1/data-sync/live
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/data-sync/ready
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/v1/data-sync/health
+            port: 3000
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: data-sync-service
   namespace: knowton-dev
+  labels:
+    app: data-sync-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/api/v1/data-sync/metrics"
 spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
   selector:
     app: data-sync-service
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 3000
-  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: data-sync-service
+  namespace: knowton-dev
+  labels:
+    app: data-sync-service
+spec:
+  selector:
+    matchLabels:
+      app: data-sync-service
+  endpoints:
+  - port: http
+    path: /api/v1/data-sync/metrics
+    interval: 30s
+    scrapeTimeout: 10s

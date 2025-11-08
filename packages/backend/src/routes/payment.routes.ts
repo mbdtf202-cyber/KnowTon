@@ -2,8 +2,20 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { paymentService } from '../services/payment.service';
 import { logger } from '../utils/logger';
+import alipayRoutes from './alipay.routes';
+import wechatRoutes from './wechat.routes';
+import cryptoPaymentRoutes from './crypto-payment.routes';
 
 const router = Router();
+
+// Mount Alipay routes
+router.use('/alipay', alipayRoutes);
+
+// Mount WeChat Pay routes
+router.use('/wechat', wechatRoutes);
+
+// Mount Crypto payment routes
+router.use('/crypto', cryptoPaymentRoutes);
 
 // Initialize Stripe for webhook signature verification
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {

@@ -240,6 +240,15 @@ export default function NFTDetailsPage() {
                 {t('pages.goToTrading')}
               </button>
 
+              {isOwner && (
+                <button
+                  onClick={() => navigate(`/fractionalize/${tokenId}`)}
+                  className="w-full px-6 py-3 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold"
+                >
+                  Fractionalize NFT
+                </button>
+              )}
+
               {!isOwner && (
                 <button
                   onClick={() => setShowOfferModal(true)}

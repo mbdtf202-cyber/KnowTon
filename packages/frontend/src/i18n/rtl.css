@@ -1,0 +1,239 @@
+/**
+ * RTL (Right-to-Left) specific styles
+ * These styles ensure proper layout for RTL languages
+ */
+
+/* RTL-specific utility classes */
+[dir="rtl"] {
+  /* Text alignment */
+  .text-left {
+    text-align: right;
+  }
+  
+  .text-right {
+    text-align: left;
+  }
+
+  /* Margins */
+  .ml-auto {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .mr-auto {
+    margin-right: 0;
+    margin-left: auto;
+  }
+
+  /* Padding */
+  .pl-0 { padding-left: 0; padding-right: 0; }
+  .pr-0 { padding-right: 0; padding-left: 0; }
+  .pl-1 { padding-left: 0; padding-right: 0.25rem; }
+  .pr-1 { padding-right: 0; padding-left: 0.25rem; }
+  .pl-2 { padding-left: 0; padding-right: 0.5rem; }
+  .pr-2 { padding-right: 0; padding-left: 0.5rem; }
+  .pl-3 { padding-left: 0; padding-right: 0.75rem; }
+  .pr-3 { padding-right: 0; padding-left: 0.75rem; }
+  .pl-4 { padding-left: 0; padding-right: 1rem; }
+  .pr-4 { padding-right: 0; padding-left: 1rem; }
+  .pl-5 { padding-left: 0; padding-right: 1.25rem; }
+  .pr-5 { padding-right: 0; padding-left: 1.25rem; }
+  .pl-6 { padding-left: 0; padding-right: 1.5rem; }
+  .pr-6 { padding-right: 0; padding-left: 1.5rem; }
+  .pl-8 { padding-left: 0; padding-right: 2rem; }
+  .pr-8 { padding-right: 0; padding-left: 2rem; }
+
+  /* Borders */
+  .border-l {
+    border-left: none;
+    border-right: 1px solid;
+  }
+
+  .border-r {
+    border-right: none;
+    border-left: 1px solid;
+  }
+
+  /* Rounded corners */
+  .rounded-l {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 0.25rem;
+    border-bottom-right-radius: 0.25rem;
+  }
+
+  .rounded-r {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 0.25rem;
+    border-bottom-left-radius: 0.25rem;
+  }
+
+  /* Transforms */
+  .rotate-90 {
+    transform: rotate(-90deg);
+  }
+
+  .rotate-180 {
+    transform: rotate(-180deg);
+  }
+
+  .rotate-270 {
+    transform: rotate(-270deg);
+  }
+}
+
+/* RTL-aware flex direction */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .flex-row-reverse {
+  flex-direction: row;
+}
+
+/* RTL-aware positioning */
+[dir="rtl"] .left-0 {
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .right-0 {
+  right: auto;
+  left: 0;
+}
+
+/* RTL-aware icons and arrows */
+[dir="rtl"] .icon-arrow-right::before {
+  content: "←";
+}
+
+[dir="rtl"] .icon-arrow-left::before {
+  content: "→";
+}
+
+/* RTL-aware dropdown menus */
+[dir="rtl"] .dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
+/* RTL-aware tooltips */
+[dir="rtl"] .tooltip-right {
+  left: auto;
+  right: 100%;
+}
+
+[dir="rtl"] .tooltip-left {
+  right: auto;
+  left: 100%;
+}
+
+/* RTL-aware modals */
+[dir="rtl"] .modal-slide-in {
+  animation: slideInFromLeft 0.3s ease-out;
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* RTL-aware forms */
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: right;
+}
+
+/* RTL-aware checkboxes and radios */
+[dir="rtl"] input[type="checkbox"],
+[dir="rtl"] input[type="radio"] {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* RTL-aware lists */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+  padding-left: 0;
+  padding-right: 2rem;
+}
+
+/* RTL-aware navigation */
+[dir="rtl"] .nav-item {
+  margin-left: 1rem;
+  margin-right: 0;
+}
+
+[dir="rtl"] .nav-item:first-child {
+  margin-left: 0;
+}
+
+/* RTL-aware breadcrumbs */
+[dir="rtl"] .breadcrumb-separator::before {
+  content: "\\";
+  transform: scaleX(-1);
+}
+
+/* RTL-aware progress bars */
+[dir="rtl"] .progress-bar {
+  direction: ltr;
+}
+
+/* RTL-aware tables */
+[dir="rtl"] table {
+  direction: rtl;
+}
+
+[dir="rtl"] th,
+[dir="rtl"] td {
+  text-align: right;
+}
+
+[dir="rtl"] th:first-child,
+[dir="rtl"] td:first-child {
+  text-align: right;
+}
+
+/* RTL-aware cards */
+[dir="rtl"] .card-header {
+  text-align: right;
+}
+
+/* RTL-aware badges */
+[dir="rtl"] .badge {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* Ensure proper text direction for mixed content */
+.ltr-content {
+  direction: ltr;
+  text-align: left;
+}
+
+.rtl-content {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Bidirectional text support */
+.bidi-text {
+  unicode-bidi: embed;
+}
+
+/* Number formatting in RTL */
+[dir="rtl"] .number,
+[dir="rtl"] .currency,
+[dir="rtl"] .date {
+  direction: ltr;
+  display: inline-block;
+}

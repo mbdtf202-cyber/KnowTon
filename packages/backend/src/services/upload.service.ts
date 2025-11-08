@@ -8,11 +8,13 @@ import crypto from 'crypto';
 import { MetadataExtractionService } from './metadata-extraction.service';
 import { FileValidationService } from './file-validation.service';
 import { PlagiarismDetectionService } from './plagiarism-detection.service';
+import { VideoPreviewService } from './video-preview.service';
 
 const prisma = new PrismaClient();
 const metadataService = new MetadataExtractionService();
 const fileValidationService = new FileValidationService();
 const plagiarismService = new PlagiarismDetectionService();
+const videoPreviewService = new VideoPreviewService();
 
 export interface UploadMetadata {
   filename: string;
@@ -403,6 +405,36 @@ export class UploadService {
             updatedAt: new Date(),
           },
         });
+      }
+
+      // Generate video preview if it's a video file
+      if (upload.filetype.startsWith('video/')) {
+        try {
+          logger.info('Generating video preview', { uploadId });
+
+          const previewResult = await videoPreviewService.generatePreview(
+            uploadId,
+            filePath,
+            upload.userId,
+            {
+              duration: 180, // 3 minutes
+              watermarkPosition: 'bottom-right',
+              generateHLS: true,
+            }
+          );
+
+          logger.info('Video preview generated', {
+            uploadId,
+            previewUrl: videoPreviewService.getPreviewUrl(uploadId),
+            hlsManifestUrl: videoPreviewService.getHLSManifestUrl(uploadId),
+          });
+        } catch (previewError) {
+          logger.error('Video preview generation failed, but continuing', {
+            uploadId,
+            error: previewError,
+          });
+          // Don't fail the upload if preview generation fails
+        }
       }
 
       logger.info('Post-processing completed', { uploadId });

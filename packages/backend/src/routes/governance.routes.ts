@@ -1,49 +1,52 @@
-import { Router } from 'express';
-import { GovernanceController } from '../controllers/governance.controller';
-import { authMiddleware } from '../middleware/auth';
+import { Router } from 'express'
+import { governanceController } from '../controllers/governance.controller'
+import { authenticate } from '../middleware/auth.middleware'
+import executionRoutes from './governance-execution.routes'
 
-const router = Router();
-const governanceController = new GovernanceController();
+const router = Router()
 
+// Proposal routes
+router.get('/proposals', governanceController.getProposals)
+router.get('/proposals/:proposalId', governanceController.getProposal)
+router.post('/proposals', authenticate, governanceController.createProposal)
+router.post('/proposals/:proposalId/vote', authenticate, governanceController.vote)
+router.post('/proposals/:proposalId/execute', authenticate, governanceController.execute)
+router.post('/proposals/:proposalId/cancel', authenticate, governanceController.cancel)
+
+// Discussion/Comment routes
+router.get('/proposals/:proposalId/comments', governanceController.getComments)
+router.post('/proposals/:proposalId/comments', authenticate, governanceController.createComment)
 router.post(
-  '/proposals',
-  authMiddleware,
-  governanceController.createProposal.bind(governanceController)
-);
+  '/proposals/:proposalId/comments/:commentId/replies',
+  authenticate,
+  governanceController.createReply
+)
+router.put(
+  '/proposals/:proposalId/comments/:commentId',
+  authenticate,
+  governanceController.updateComment
+)
+router.delete(
+  '/proposals/:proposalId/comments/:commentId',
+  authenticate,
+  governanceController.deleteComment
+)
 
-router.post(
-  '/proposals/:proposalId/vote',
-  authMiddleware,
-  governanceController.vote.bind(governanceController)
-);
+// Voting power routes
+router.get('/voting-power/:address', governanceController.getVotingPower)
+router.get('/proposals/:proposalId/votes', governanceController.getVotes)
 
-router.post(
-  '/proposals/:proposalId/queue',
-  authMiddleware,
-  governanceController.queueProposal.bind(governanceController)
-);
+// Lifecycle management routes
+router.post('/proposals/:proposalId/queue', authenticate, governanceController.queueProposal)
+router.get('/proposals/:proposalId/state', governanceController.getProposalState)
+router.get('/proposals/:proposalId/timeline', governanceController.getProposalTimeline)
 
-router.post(
-  '/proposals/:proposalId/execute',
-  authMiddleware,
-  governanceController.executeProposal.bind(governanceController)
-);
+// Delegation routes
+router.get('/delegation/:address', governanceController.getDelegationStatus)
+router.post('/delegate', authenticate, governanceController.delegateVotes)
+router.post('/undelegate', authenticate, governanceController.undelegateVotes)
 
-router.post(
-  '/proposals/:proposalId/cancel',
-  authMiddleware,
-  governanceController.cancelProposal.bind(governanceController)
-);
+// Execution system routes
+router.use('/execution', executionRoutes)
 
-router.get('/proposals/:proposalId', governanceController.getProposal.bind(governanceController));
-
-router.get('/proposals', governanceController.getAllProposals.bind(governanceController));
-
-router.get('/votes/:address', governanceController.getUserVotes.bind(governanceController));
-
-router.get(
-  '/proposals/:proposalId/has-voted/:address',
-  governanceController.hasVoted.bind(governanceController)
-);
-
-export default router;
+export default router

@@ -4,11 +4,35 @@ import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { PrismaClient } from '@prisma/client'
 import { emailService } from './email.service'
+import { getVaultClient } from './vault-client.service'
 
 const prisma = new PrismaClient()
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const vaultClient = getVaultClient()
 const JWT_EXPIRY = '7d'
 const SALT_ROUNDS = 12
+
+// Cache JWT secret to avoid frequent Vault calls
+let cachedJWTSecret: string | null = null
+let secretCacheExpiry: number = 0
+const SECRET_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+async function getJWTSecret(): Promise<string> {
+  // Return cached secret if still valid
+  if (cachedJWTSecret && Date.now() < secretCacheExpiry) {
+    return cachedJWTSecret
+  }
+
+  try {
+    // Get JWT secret from Vault
+    cachedJWTSecret = await vaultClient.getJWTSecret()
+    secretCacheExpiry = Date.now() + SECRET_CACHE_TTL
+    return cachedJWTSecret
+  } catch (error) {
+    // Fallback to environment variable if Vault is unavailable
+    console.warn('Failed to get JWT secret from Vault, using fallback')
+    return process.env.JWT_SECRET || 'your-secret-key'
+  }
+}
 
 interface WalletAuthPayload {
   address: string
@@ -64,13 +88,14 @@ export class AuthService {
       }
 
       // Generate JWT token
+      const jwtSecret = await getJWTSecret()
       const token = jwt.sign(
         {
           address: user.address,
           walletType: user.walletType,
           role: user.role,
         },
-        JWT_SECRET,
+        jwtSecret,
         { expiresIn: JWT_EXPIRY }
       )
 
@@ -84,9 +109,10 @@ export class AuthService {
   /**
    * Verify JWT token
    */
-  verifyToken(token: string): any {
+  async verifyToken(token: string): Promise<any> {
     try {
-      return jwt.verify(token, JWT_SECRET)
+      const jwtSecret = await getJWTSecret()
+      return jwt.verify(token, jwtSecret)
     } catch (error) {
       throw new Error('Invalid token')
     }
@@ -102,8 +128,9 @@ export class AuthService {
   /**
    * Refresh JWT token
    */
-  refreshToken(oldToken: string): string {
+  async refreshToken(oldToken: string): Promise<string> {
     const decoded = this.verifyToken(oldToken)
+    const jwtSecret = await getJWTSecret()
     
     const newToken = jwt.sign(
       {
@@ -111,7 +138,7 @@ export class AuthService {
         walletType: decoded.walletType,
         role: decoded.role,
       },
-      JWT_SECRET,
+      jwtSecret,
       { expiresIn: JWT_EXPIRY }
     )
 
@@ -242,13 +269,14 @@ export class AuthService {
     }
 
     // Generate JWT token
+    const jwtSecret = await getJWTSecret()
     const jwtToken = jwt.sign(
       {
         userId: updatedUser.id,
         email: updatedUser.email,
         role: updatedUser.role,
       },
-      JWT_SECRET,
+      jwtSecret,
       { expiresIn: JWT_EXPIRY }
     )
 
@@ -297,13 +325,14 @@ export class AuthService {
     })
 
     // Generate JWT token
+    const jwtSecret = await getJWTSecret()
     const token = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role,
       },
-      JWT_SECRET,
+      jwtSecret,
       { expiresIn: JWT_EXPIRY }
     )
 

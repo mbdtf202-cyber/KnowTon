@@ -5,10 +5,19 @@ interface GovernanceState {
   isCreating: boolean
   isVoting: boolean
   isExecuting: boolean
+  isDelegating: boolean
   status: 'idle' | 'preparing' | 'signing' | 'confirming' | 'complete' | 'error'
   txHash: string | null
   proposalId: string | null
   error: string | null
+}
+
+interface VotingPowerBreakdown {
+  tokenBalance: string
+  quadraticWeight: string
+  activityScore: number
+  activityMultiplier: number
+  totalVotingPower: string
 }
 
 export function useGovernance() {
@@ -16,6 +25,7 @@ export function useGovernance() {
     isCreating: false,
     isVoting: false,
     isExecuting: false,
+    isDelegating: false,
     status: 'idle',
     txHash: null,
     proposalId: null,
@@ -24,6 +34,14 @@ export function useGovernance() {
 
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [votingPower, setVotingPower] = useState<string>('0')
+  const [votingPowerBreakdown, setVotingPowerBreakdown] = useState<VotingPowerBreakdown>({
+    tokenBalance: '0',
+    quadraticWeight: '0',
+    activityScore: 0,
+    activityMultiplier: 0,
+    totalVotingPower: '0',
+  })
+  const [currentDelegate, setCurrentDelegate] = useState<string | null>(null)
 
   // Load proposals
   const loadProposals = useCallback(async () => {
@@ -90,9 +108,38 @@ export function useGovernance() {
   const loadVotingPower = useCallback(async (_address: string) => {
     try {
       // Mock data - replace with actual contract call
-      setVotingPower('50000')
+      const tokenBalance = '100000'
+      const quadraticWeight = Math.sqrt(Number(tokenBalance)).toFixed(2)
+      const activityScore = 750
+      const activityMultiplier = activityScore > 1000 ? 50 : (activityScore * 50) / 1000
+      const totalVotingPower = (Number(quadraticWeight) * (1 + activityMultiplier / 100)).toFixed(2)
+
+      setVotingPower(totalVotingPower)
+      setVotingPowerBreakdown({
+        tokenBalance,
+        quadraticWeight,
+        activityScore,
+        activityMultiplier,
+        totalVotingPower,
+      })
     } catch (error) {
       console.error('Failed to load voting power:', error)
+    }
+  }, [])
+
+  // Load delegation status
+  const loadDelegationStatus = useCallback(async (_address: string) => {
+    try {
+      // Mock data - replace with actual contract call
+      // For demo, randomly set delegation status
+      const isDelegated = Math.random() > 0.7
+      if (isDelegated) {
+        setCurrentDelegate('0x' + Math.random().toString(16).substring(2, 42))
+      } else {
+        setCurrentDelegate(null)
+      }
+    } catch (error) {
+      console.error('Failed to load delegation status:', error)
     }
   }, [])
 
@@ -295,12 +342,118 @@ export function useGovernance() {
     }
   }, [])
 
+  // Delegate votes
+  const delegateVotes = useCallback(async (delegatee: string) => {
+    try {
+      setGovernanceState({
+        isCreating: false,
+        isVoting: false,
+        isExecuting: false,
+        isDelegating: true,
+        status: 'preparing',
+        txHash: null,
+        proposalId: null,
+        error: null,
+      })
+
+      // Simulate transaction preparation
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      setGovernanceState((prev) => ({ ...prev, status: 'signing' }))
+
+      // Simulate signing
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+
+      const mockTxHash = '0x' + Math.random().toString(16).substring(2, 66)
+
+      setGovernanceState((prev) => ({
+        ...prev,
+        status: 'confirming',
+        txHash: mockTxHash,
+      }))
+
+      // Simulate confirmation
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      setGovernanceState((prev) => ({ ...prev, status: 'complete', isDelegating: false }))
+
+      // Update delegation status
+      setCurrentDelegate(delegatee)
+
+      return { txHash: mockTxHash }
+    } catch (error: any) {
+      setGovernanceState({
+        isCreating: false,
+        isVoting: false,
+        isExecuting: false,
+        isDelegating: false,
+        status: 'error',
+        txHash: null,
+        proposalId: null,
+        error: error.message || 'Failed to delegate votes',
+      })
+      throw error
+    }
+  }, [])
+
+  // Undelegate votes
+  const undelegateVotes = useCallback(async () => {
+    try {
+      setGovernanceState({
+        isCreating: false,
+        isVoting: false,
+        isExecuting: false,
+        isDelegating: true,
+        status: 'preparing',
+        txHash: null,
+        proposalId: null,
+        error: null,
+      })
+
+      // Simulate transaction
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      setGovernanceState((prev) => ({ ...prev, status: 'signing' }))
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+
+      const mockTxHash = '0x' + Math.random().toString(16).substring(2, 66)
+
+      setGovernanceState((prev) => ({
+        ...prev,
+        status: 'confirming',
+        txHash: mockTxHash,
+      }))
+
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      setGovernanceState((prev) => ({ ...prev, status: 'complete', isDelegating: false }))
+
+      // Clear delegation
+      setCurrentDelegate(null)
+
+      return { txHash: mockTxHash }
+    } catch (error: any) {
+      setGovernanceState({
+        isCreating: false,
+        isVoting: false,
+        isExecuting: false,
+        isDelegating: false,
+        status: 'error',
+        txHash: null,
+        proposalId: null,
+        error: error.message || 'Failed to undelegate votes',
+      })
+      throw error
+    }
+  }, [])
+
   // Reset state
   const reset = useCallback(() => {
     setGovernanceState({
       isCreating: false,
       isVoting: false,
       isExecuting: false,
+      isDelegating: false,
       status: 'idle',
       txHash: null,
       proposalId: null,
@@ -312,12 +465,17 @@ export function useGovernance() {
     governanceState,
     proposals,
     votingPower,
+    votingPowerBreakdown,
+    currentDelegate,
     loadProposals,
     loadVotingPower,
+    loadDelegationStatus,
     createProposal,
     castVote,
     executeProposal,
     cancelProposal,
+    delegateVotes,
+    undelegateVotes,
     reset,
   }
 }

@@ -24,6 +24,8 @@ export interface FractionalizeState {
 }
 
 export interface VaultInfo extends FractionalVault {
+  tokenName?: string
+  tokenSymbol?: string
   holders?: Array<{
     address: string
     balance: string

@@ -1,12 +1,11 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { FractionalizationVault, CopyrightRegistry } from "../typechain-types";
+import { FractionalizationVault, CopyrightRegistrySimple } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("FractionalizationVault", function () {
   let vault: FractionalizationVault;
-  let nft: CopyrightRegistry;
+  let nft: CopyrightRegistrySimple;
   let owner: SignerWithAddress;
   let curator: SignerWithAddress;
   let voter1: SignerWithAddress;
@@ -20,13 +19,17 @@ describe("FractionalizationVault", function () {
     [owner, curator, voter1, voter2, redeemer] = await ethers.getSigners();
 
     // Deploy NFT contract
-    const CopyrightRegistry = await ethers.getContractFactory("CopyrightRegistry");
+    const CopyrightRegistrySimple = await ethers.getContractFactory("CopyrightRegistrySimple");
     nft = await upgrades.deployProxy(
-      CopyrightRegistry,
+      CopyrightRegistrySimple,
       [],
       { initializer: "initialize" }
-    ) as unknown as CopyrightRegistry;
+    ) as unknown as CopyrightRegistrySimple;
     await nft.waitForDeployment();
+
+    // Grant MINTER_ROLE to owner for testing
+    const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
+    await nft.grantRole(MINTER_ROLE, owner.address);
 
     // Deploy Vault contract
     const FractionalizationVault = await ethers.getContractFactory("FractionalizationVault");
@@ -37,14 +40,14 @@ describe("FractionalizationVault", function () {
     ) as unknown as FractionalizationVault;
     await vault.waitForDeployment();
 
-    // Mint NFT to curator
-    await nft.mintIPNFT(
+    // Mint NFT to curator using registerIP
+    await nft.registerIP(
       curator.address,
       "ipfs://test",
       ethers.keccak256(ethers.toUtf8Bytes("content")),
       ethers.keccak256(ethers.toUtf8Bytes("fingerprint")),
-      0,
-      1000
+      0, // ContentCategory.Music
+      1000 // 10% royalty
     );
   });
 
@@ -149,7 +152,9 @@ describe("FractionalizationVault", function () {
     it("Should reject votes after voting period", async function () {
       await vault.connect(curator).startRedeemVoting(1);
 
-      await time.increase(8 * 24 * 60 * 60); // 8 days
+      // Increase time by 8 days
+      await ethers.provider.send("evm_increaseTime", [8 * 24 * 60 * 60]);
+      await ethers.provider.send("evm_mine", []);
 
       await expect(vault.connect(voter1).vote(1, true)).to.be.revertedWith("Voting ended");
     });
@@ -174,7 +179,9 @@ describe("FractionalizationVault", function () {
       await vault.connect(voter1).vote(1, true);
       await vault.connect(voter2).vote(1, false);
 
-      await time.increase(8 * 24 * 60 * 60);
+      // Increase time by 8 days
+      await ethers.provider.send("evm_increaseTime", [8 * 24 * 60 * 60]);
+      await ethers.provider.send("evm_mine", []);
     });
 
     it("Should execute redeem after successful vote", async function () {
@@ -186,7 +193,7 @@ describe("FractionalizationVault", function () {
 
       expect(await nft.ownerOf(1)).to.equal(redeemer.address);
 
-      const [, , , , , state] = await vault.getVaultInfo(1);
+      const [, , , state] = await vault.getVaultInfo(1);
       expect(state).to.equal(3); // Redeemed
     });
 
@@ -197,10 +204,30 @@ describe("FractionalizationVault", function () {
     });
 
     it("Should reject redeem before voting ends", async function () {
-      await vault.connect(curator).startRedeemVoting(1);
+      // Create a new vault for this test
+      await nft.registerIP(
+        curator.address,
+        "ipfs://test2",
+        ethers.keccak256(ethers.toUtf8Bytes("content2")),
+        ethers.keccak256(ethers.toUtf8Bytes("fingerprint2")),
+        0,
+        1000
+      );
+      
+      await nft.connect(curator).approve(await vault.getAddress(), 2);
+      await vault.connect(curator).createVault(
+        await nft.getAddress(),
+        2,
+        TOTAL_SUPPLY,
+        RESERVE_PRICE,
+        "fNFT2",
+        "fNFT2"
+      );
+
+      await vault.connect(curator).startRedeemVoting(2);
 
       await expect(
-        vault.connect(redeemer).executeRedeem(1, { value: RESERVE_PRICE })
+        vault.connect(redeemer).executeRedeem(2, { value: RESERVE_PRICE })
       ).to.be.revertedWith("Voting not ended");
     });
   });
@@ -221,7 +248,7 @@ describe("FractionalizationVault", function () {
     it("Should update reserve price", async function () {
       const newPrice = ethers.parseEther("20");
 
-      await expect(vault.updateReservePrice(1, newPrice))
+      await expect(vault.connect(curator).updateReservePrice(1, newPrice))
         .to.emit(vault, "ReservePriceUpdated")
         .withArgs(1, newPrice);
 

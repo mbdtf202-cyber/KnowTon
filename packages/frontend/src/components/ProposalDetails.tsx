@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Proposal } from '../types'
+import ProposalDiscussion from './ProposalDiscussion'
 
 interface ProposalDetailsProps {
   proposal: Proposal
@@ -18,70 +20,55 @@ export default function ProposalDetails({
   isVoting,
   isExecuting,
 }: ProposalDetailsProps) {
+  const { t } = useTranslation()
   const [selectedVote, setSelectedVote] = useState<0 | 1 | 2 | null>(null)
+  const [showDiscussion, setShowDiscussion] = useState(false)
+
+  const totalVotes =
+    Number(proposal.forVotes) +
+    Number(proposal.againstVotes) +
+    Number(proposal.abstainVotes)
+
+  const forPercentage = totalVotes > 0 ? (Number(proposal.forVotes) / totalVotes) * 100 : 0
+  const againstPercentage =
+    totalVotes > 0 ? (Number(proposal.againstVotes) / totalVotes) * 100 : 0
+  const abstainPercentage =
+    totalVotes > 0 ? (Number(proposal.abstainVotes) / totalVotes) * 100 : 0
+
+  const canVote = proposal.status === 'ACTIVE' && Number(votingPower) > 0
+  const canExecute = proposal.status === 'SUCCEEDED'
 
   const getStatusColor = (status: Proposal['status']) => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-green-100 text-green-800 border-green-300'
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300'
       case 'SUCCEEDED':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-blue-100 text-blue-800 border-blue-300'
       case 'EXECUTED':
-        return 'bg-purple-100 text-purple-800 border-purple-200'
+        return 'bg-purple-100 text-purple-800 border-purple-300'
       case 'DEFEATED':
-        return 'bg-red-100 text-red-800 border-red-200'
+        return 'bg-red-100 text-red-800 border-red-300'
       case 'CANCELLED':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gray-100 text-gray-800 border-gray-300'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gray-100 text-gray-800 border-gray-300'
     }
   }
 
-  const getStatusText = (status: Proposal['status']) => {
-    switch (status) {
-      case 'ACTIVE':
-        return '进行中'
-      case 'PENDING':
-        return '待开始'
-      case 'SUCCEEDED':
-        return '已通过'
-      case 'EXECUTED':
-        return '已执行'
-      case 'DEFEATED':
-        return '未通过'
-      case 'CANCELLED':
-        return '已取消'
-      default:
-        return status
-    }
-  }
-
-  const getTypeText = (type: Proposal['proposalType']) => {
+  const getProposalTypeLabel = (type: Proposal['proposalType']) => {
     switch (type) {
       case 'PARAMETER_CHANGE':
-        return '参数变更'
-      case 'DISPUTE_RESOLUTION':
-        return '争议解决'
+        return t('governance.parameterChange')
       case 'TREASURY_ALLOCATION':
-        return '资金分配'
+        return t('governance.treasuryAllocation')
+      case 'DISPUTE_RESOLUTION':
+        return t('governance.disputeResolution')
       case 'CONTRACT_UPGRADE':
-        return '合约升级'
+        return t('governance.contractUpgrade')
       default:
         return type
-    }
-  }
-
-  const calculateVotePercentage = () => {
-    const total =
-      Number(proposal.forVotes) + Number(proposal.againstVotes) + Number(proposal.abstainVotes)
-    if (total === 0) return { for: 0, against: 0, abstain: 0 }
-
-    return {
-      for: (Number(proposal.forVotes) / total) * 100,
-      against: (Number(proposal.againstVotes) / total) * 100,
-      abstain: (Number(proposal.abstainVotes) / total) * 100,
     }
   }
 
@@ -91,11 +78,9 @@ export default function ProposalDetails({
     setSelectedVote(null)
   }
 
-  const percentages = calculateVotePercentage()
-  const totalVotes =
-    Number(proposal.forVotes) + Number(proposal.againstVotes) + Number(proposal.abstainVotes)
-  const quorumRequired = 100000 // Mock quorum
-  const quorumPercentage = (totalVotes / quorumRequired) * 100
+  const handleExecute = async () => {
+    await onExecute(proposal.id)
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -103,157 +88,174 @@ export default function ProposalDetails({
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="text-sm font-medium text-gray-500">
-                {getTypeText(proposal.proposalType)}
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {t('governance.proposalId')} #{proposal.id}
+              </h2>
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border-2 ${getStatusColor(
+                  proposal.status
+                )}`}
+              >
+                {proposal.status}
               </span>
-              <span className="text-sm text-gray-400">•</span>
-              <span className="text-sm text-gray-500">提案 #{proposal.id}</span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">提案详情</h2>
+            <div className="text-sm text-gray-600">
+              {getProposalTypeLabel(proposal.proposalType)}
+            </div>
           </div>
-          <span
-            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-              proposal.status
-            )}`}
-          >
-            {getStatusText(proposal.status)}
+        </div>
+
+        {/* Proposer Info */}
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          <span>
+            {t('governance.proposedBy')}{' '}
+            <span className="font-mono font-medium">
+              {proposal.proposer.slice(0, 6)}...{proposal.proposer.slice(-4)}
+            </span>
           </span>
         </div>
 
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
-          <div className="flex items-center">
-            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* Block Range */}
+        <div className="mt-2 flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span>提案人: {proposal.proposer}</span>
+            <span>
+              {t('governance.blocks')}: {proposal.startBlock.toLocaleString()} -{' '}
+              {proposal.endBlock.toLocaleString()}
+            </span>
           </div>
-          {proposal.status === 'ACTIVE' && (
-            <div className="flex items-center">
-              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>
-                区块 {proposal.startBlock.toLocaleString()} - {proposal.endBlock.toLocaleString()}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Description */}
       <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">提案说明</h3>
-        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{proposal.description}</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">
+          {t('governance.description')}
+        </h3>
+        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {proposal.description}
+        </p>
       </div>
 
       {/* Voting Results */}
       <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">投票结果</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {t('governance.votingResults')}
+        </h3>
 
-        {/* Quorum Progress */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-            <span>法定人数进度</span>
-            <span>
-              {totalVotes.toLocaleString()} / {quorumRequired.toLocaleString()} 票 (
-              {quorumPercentage.toFixed(1)}%)
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-full rounded-full transition-all ${
-                quorumPercentage >= 100 ? 'bg-green-500' : 'bg-blue-500'
-              }`}
-              style={{ width: `${Math.min(quorumPercentage, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Vote Breakdown */}
         <div className="space-y-4">
           {/* For Votes */}
           <div>
-            <div className="flex items-center justify-between text-sm mb-2">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2" />
-                <span className="font-medium text-gray-900">赞成</span>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {t('governance.for')}
+                </span>
               </div>
-              <span className="text-gray-600">
-                {Number(proposal.forVotes).toLocaleString()} 票 ({percentages.for.toFixed(1)}%)
-              </span>
+              <div className="text-right">
+                <div className="text-sm font-semibold text-gray-900">
+                  {Number(proposal.forVotes).toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-500">{forPercentage.toFixed(1)}%</div>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div
-                className="bg-green-500 h-full rounded-full transition-all"
-                style={{ width: `${percentages.for}%` }}
+                className="bg-green-500 h-full transition-all duration-300"
+                style={{ width: `${forPercentage}%` }}
               />
             </div>
           </div>
 
           {/* Against Votes */}
           <div>
-            <div className="flex items-center justify-between text-sm mb-2">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-red-500 rounded-full mr-2" />
-                <span className="font-medium text-gray-900">反对</span>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {t('governance.against')}
+                </span>
               </div>
-              <span className="text-gray-600">
-                {Number(proposal.againstVotes).toLocaleString()} 票 ({percentages.against.toFixed(1)}%)
-              </span>
+              <div className="text-right">
+                <div className="text-sm font-semibold text-gray-900">
+                  {Number(proposal.againstVotes).toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-500">{againstPercentage.toFixed(1)}%</div>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div
-                className="bg-red-500 h-full rounded-full transition-all"
-                style={{ width: `${percentages.against}%` }}
+                className="bg-red-500 h-full transition-all duration-300"
+                style={{ width: `${againstPercentage}%` }}
               />
             </div>
           </div>
 
           {/* Abstain Votes */}
           <div>
-            <div className="flex items-center justify-between text-sm mb-2">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-gray-400 rounded-full mr-2" />
-                <span className="font-medium text-gray-900">弃权</span>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {t('governance.abstain')}
+                </span>
               </div>
-              <span className="text-gray-600">
-                {Number(proposal.abstainVotes).toLocaleString()} 票 ({percentages.abstain.toFixed(1)}%)
-              </span>
+              <div className="text-right">
+                <div className="text-sm font-semibold text-gray-900">
+                  {Number(proposal.abstainVotes).toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-500">{abstainPercentage.toFixed(1)}%</div>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div
-                className="bg-gray-400 h-full rounded-full transition-all"
-                style={{ width: `${percentages.abstain}%` }}
+                className="bg-gray-400 h-full transition-all duration-300"
+                style={{ width: `${abstainPercentage}%` }}
               />
+            </div>
+          </div>
+
+          {/* Total */}
+          <div className="pt-3 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">
+                {t('governance.totalVotes')}
+              </span>
+              <span className="text-sm font-semibold text-gray-900">
+                {totalVotes.toLocaleString()}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Voting Actions */}
-      {proposal.status === 'ACTIVE' && (
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">投票</h3>
+      {canVote && (
+        <div className="p-6 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {t('governance.castYourVote')}
+          </h3>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <div className="flex items-center">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-800">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -261,158 +263,114 @@ export default function ProposalDetails({
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <div className="text-sm">
-                <span className="font-medium text-gray-900">您的投票权重: </span>
-                <span className="text-gray-700">{Number(votingPower).toLocaleString()} 票</span>
-              </div>
+              <span>
+                {t('governance.yourVotingPower')}: {Number(votingPower).toLocaleString()}
+              </span>
             </div>
           </div>
 
-          <div className="space-y-3 mb-4">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <button
               onClick={() => setSelectedVote(1)}
-              disabled={isVoting}
-              className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
+              className={`p-4 rounded-lg border-2 transition-all ${
                 selectedVote === 1
                   ? 'border-green-500 bg-green-50'
-                  : 'border-gray-200 hover:border-green-300'
-              } ${isVoting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  : 'border-gray-300 hover:border-green-400 bg-white'
+              }`}
             >
-              <div className="flex items-center">
-                <div
-                  className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                    selectedVote === 1 ? 'border-green-500 bg-green-500' : 'border-gray-300'
-                  }`}
-                >
-                  {selectedVote === 1 && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <span className="font-medium text-gray-900">赞成提案</span>
-              </div>
-              <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <div className="text-2xl mb-2">✅</div>
+              <div className="text-sm font-medium text-gray-900">{t('governance.for')}</div>
             </button>
 
             <button
               onClick={() => setSelectedVote(0)}
-              disabled={isVoting}
-              className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
+              className={`p-4 rounded-lg border-2 transition-all ${
                 selectedVote === 0
                   ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:border-red-300'
-              } ${isVoting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  : 'border-gray-300 hover:border-red-400 bg-white'
+              }`}
             >
-              <div className="flex items-center">
-                <div
-                  className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                    selectedVote === 0 ? 'border-red-500 bg-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  {selectedVote === 0 && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <span className="font-medium text-gray-900">反对提案</span>
-              </div>
-              <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <div className="text-2xl mb-2">❌</div>
+              <div className="text-sm font-medium text-gray-900">{t('governance.against')}</div>
             </button>
 
             <button
               onClick={() => setSelectedVote(2)}
-              disabled={isVoting}
-              className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
+              className={`p-4 rounded-lg border-2 transition-all ${
                 selectedVote === 2
                   ? 'border-gray-500 bg-gray-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              } ${isVoting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  : 'border-gray-300 hover:border-gray-400 bg-white'
+              }`}
             >
-              <div className="flex items-center">
-                <div
-                  className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                    selectedVote === 2 ? 'border-gray-500 bg-gray-500' : 'border-gray-300'
-                  }`}
-                >
-                  {selectedVote === 2 && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <span className="font-medium text-gray-900">弃权</span>
-              </div>
-              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-              </svg>
+              <div className="text-2xl mb-2">⚪</div>
+              <div className="text-sm font-medium text-gray-900">{t('governance.abstain')}</div>
             </button>
           </div>
 
           <button
             onClick={handleVote}
             disabled={selectedVote === null || isVoting}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {isVoting ? '投票中...' : '提交投票'}
+            {isVoting ? t('governance.voting') : t('governance.submitVote')}
           </button>
         </div>
       )}
 
       {/* Execute Action */}
-      {proposal.status === 'SUCCEEDED' && (
-        <div className="p-6">
+      {canExecute && (
+        <div className="p-6 border-b border-gray-200 bg-green-50">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            {t('governance.readyToExecute')}
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            {t('governance.executeDescription')}
+          </p>
           <button
-            onClick={() => onExecute(proposal.id)}
+            onClick={handleExecute}
             disabled={isExecuting}
-            className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {isExecuting ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                执行中...
-              </>
-            ) : (
-              '执行提案'
-            )}
+            {isExecuting ? t('governance.executing') : t('governance.executeProposal')}
           </button>
         </div>
       )}
+
+      {/* Discussion Tab */}
+      <div className="p-6">
+        <button
+          onClick={() => setShowDiscussion(!showDiscussion)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            {t('governance.discussion')}
+          </h3>
+          <svg
+            className={`w-5 h-5 text-gray-500 transition-transform ${
+              showDiscussion ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showDiscussion && (
+          <div className="mt-4">
+            <ProposalDiscussion proposalId={proposal.id} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

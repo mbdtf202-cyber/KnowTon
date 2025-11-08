@@ -1,0 +1,155 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: data-sync-alerts
+  namespace: knowton-dev
+  labels:
+    app: data-sync-service
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: data-sync
+    interval: 30s
+    rules:
+    # High Sync Lag Alert
+    - alert: DataSyncHighLag
+      expr: cdc_sync_lag_seconds > 60
+      for: 5m
+      labels:
+        severity: warning
+        component: data-sync
+      annotations:
+        summary: "Data sync lag is high"
+        description: "Data sync lag for table {{ $labels.table }} is {{ $value }}s (threshold: 60s)"
+        runbook_url: "https://docs.knowton.io/runbooks/data-sync-high-lag"
+
+    # Critical Sync Lag Alert
+    - alert: DataSyncCriticalLag
+      expr: cdc_sync_lag_seconds > 300
+      for: 2m
+      labels:
+        severity: critical
+        component: data-sync
+      annotations:
+        summary: "Data sync lag is critical"
+        description: "Data sync lag for table {{ $labels.table }} is {{ $value }}s (threshold: 300s)"
+        runbook_url: "https://docs.knowton.io/runbooks/data-sync-critical-lag"
+
+    # High Error Rate Alert
+    - alert: DataSyncHighErrorRate
+      expr: |
+        rate(cdc_sync_errors_total[5m]) / 
+        rate(cdc_sync_events_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        component: data-sync
+      annotations:
+        summary: "Data sync error rate is high"
+        description: "Error rate for table {{ $labels.table }} is {{ $value | humanizePercentage }} (threshold: 5%)"
+        runbook_url: "https://docs.knowton.io/runbooks/data-sync-high-error-rate"
+
+    # Critical Error Rate Alert
+    - alert: DataSyncCriticalErrorRate
+      expr: |
+        rate(cdc_sync_errors_total[5m]) / 
+        rate(cdc_sync_events_total[5m]) > 0.20
+      for: 2m
+      labels:
+        severity: critical
+        component: data-sync
+      annotations:
+        summary: "Data sync error rate is critical"
+        description: "Error rate for table {{ $labels.table }} is {{ $value | humanizePercentage }} (threshold: 20%)"
+        runbook_url: "https://docs.knowton.io/runbooks/data-sync-critical-error-rate"
+
+    # Service Down Alert
+    - alert: DataSyncServiceDown
+      expr: up{job="data-sync-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        component: data-sync
+      annotations:
+        summary: "Data sync service is down"
+        description: "Data sync service has been down for more than 1 minute"
+        runbook_url: "https://docs.knowton.io/runbooks/data-sync-service-down"
+
+    # Low Throughput Alert
+    - alert: DataSyncLowThroughput
+      expr: rate(cdc_sync_events_total{status="success"}[5m]) < 0.1
+      for: 10m
+      labels:
+        severity: warning
+        component: data-sync
+      annotations:
+        summary: "Data sync throughput is low"
+        description: "Sync throughput is {{ $value }} events/s (threshold: 0.1 events/s)"
+        runbook_url: "https://docs.knowton.io/runbooks/data-sync-low-throughput"
+
+    # Kafka Publish Failures
+    - alert: DataSyncKafkaPublishFailures
+      expr: rate(cdc_sync_errors_total{error_type="kafka_publish_failed"}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        component: data-sync
+      annotations:
+        summary: "Kafka publish failures detected"
+        description: "Kafka publish failure rate is {{ $value }} errors/s for table {{ $labels.table }}"
+        runbook_url: "https://docs.knowton.io/runbooks/kafka-publish-failures"
+
+    # ClickHouse Write Failures
+    - alert: DataSyncClickHouseWriteFailures
+      expr: |
+        rate(cdc_clickhouse_writes_total{status="error"}[5m]) /
+        rate(cdc_clickhouse_writes_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        component: data-sync
+      annotations:
+        summary: "ClickHouse write failures detected"
+        description: "ClickHouse write failure rate is {{ $value | humanizePercentage }} for table {{ $labels.table }}"
+        runbook_url: "https://docs.knowton.io/runbooks/clickhouse-write-failures"
+
+    # Elasticsearch Write Failures
+    - alert: DataSyncElasticsearchWriteFailures
+      expr: |
+        rate(cdc_elasticsearch_writes_total{status="error"}[5m]) /
+        rate(cdc_elasticsearch_writes_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        component: data-sync
+      annotations:
+        summary: "Elasticsearch write failures detected"
+        description: "Elasticsearch write failure rate is {{ $value | humanizePercentage }} for index {{ $labels.index }}"
+        runbook_url: "https://docs.knowton.io/runbooks/elasticsearch-write-failures"
+
+    # Data Consistency Issues
+    - alert: DataSyncConsistencyIssues
+      expr: |
+        increase(cdc_sync_events_total{status="error"}[1h]) > 100
+      for: 5m
+      labels:
+        severity: critical
+        component: data-sync
+      annotations:
+        summary: "Data consistency issues detected"
+        description: "More than 100 sync errors in the last hour for table {{ $labels.table }}"
+        runbook_url: "https://docs.knowton.io/runbooks/data-consistency-issues"
+
+    # Service Unhealthy
+    - alert: DataSyncServiceUnhealthy
+      expr: |
+        absent(cdc_sync_events_total) or
+        rate(cdc_sync_events_total[5m]) == 0
+      for: 10m
+      labels:
+        severity: warning
+        component: data-sync
+      annotations:
+        summary: "Data sync service appears unhealthy"
+        description: "No sync events detected in the last 10 minutes"
+        runbook_url: "https://docs.knowton.io/runbooks/data-sync-unhealthy"

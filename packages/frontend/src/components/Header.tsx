@@ -54,6 +54,7 @@ export default function Header() {
 
   const navLinks = [
     { to: '/marketplace', label: t('nav.marketplace'), icon: '🏪', requiresWallet: false },
+    { to: '/dashboard', label: 'Dashboard', icon: '📊', requiresWallet: true },
     { to: '/upload', label: t('nav.upload'), icon: '📤', requiresWallet: true },
     { to: '/mint', label: t('nav.mint'), icon: '✨', requiresWallet: true },
     { to: '/trading', label: t('nav.trading'), icon: '💱', requiresWallet: true },

@@ -100,6 +100,63 @@ export const marketplaceAPI = {
     api.post(`/api/v1/marketplace/cancel`, { tokenId }),
 }
 
+// Uniswap V3 APIs
+export const uniswapAPI = {
+  getPoolInfo: (vaultId: string) =>
+    api.get(`/api/v1/uniswap/pools/${vaultId}`),
+  
+  createPool: (data: {
+    vaultId: string;
+    fractionalToken: string;
+    fee: number;
+    initialPrice: string;
+  }) =>
+    api.post('/api/v1/uniswap/pools', data),
+  
+  getSwapQuote: (data: {
+    vaultId: string;
+    tokenIn: string;
+    amountIn: string;
+    slippageBps: number;
+  }) =>
+    api.post('/api/v1/uniswap/quote', data),
+  
+  executeSwap: (data: {
+    vaultId: string;
+    tokenIn: string;
+    tokenOut: string;
+    amountIn: string;
+    slippageBps: number;
+  }) =>
+    api.post('/api/v1/uniswap/swap', data),
+  
+  addLiquidity: (data: {
+    vaultId: string;
+    amount0Desired: string;
+    amount1Desired: string;
+    slippageBps: number;
+  }) =>
+    api.post('/api/v1/uniswap/liquidity/add', data),
+  
+  removeLiquidity: (data: {
+    vaultId: string;
+    positionId: string;
+    liquidity: string;
+    slippageBps: number;
+  }) =>
+    api.post('/api/v1/uniswap/liquidity/remove', data),
+  
+  getPositions: (vaultId: string) =>
+    api.get(`/api/v1/uniswap/positions/${vaultId}`),
+  
+  approveToken: (data: {
+    token: string;
+    spender: string;
+    amount: string;
+  }) =>
+    api.post('/api/v1/uniswap/approve', data),
+}
+
 // Staking APIs
 export const stakingAPI = {
   stake: (amount: string, poolId: string) =>

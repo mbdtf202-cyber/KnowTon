@@ -19,8 +19,34 @@ run:
 
 # Run tests
 test:
-	@echo "Running tests..."
-	go test -v ./...
+	@echo "Running all tests..."
+	go test -v ./... -timeout 30m
+
+# Run unit tests only
+test-unit:
+	@echo "Running unit tests..."
+	go test -v -short ./...
+
+# Run integration tests
+test-integration:
+	@echo "Running integration tests..."
+	@echo "Make sure you have set the following environment variables:"
+	@echo "  - ARBITRUM_RPC_URL"
+	@echo "  - IPBOND_CONTRACT_ADDRESS"
+	@echo "  - PRIVATE_KEY"
+	@echo "  - AI_ORACLE_URL (optional)"
+	@echo ""
+	go test -v ./test/integration/... ./internal/blockchain/*_integration_test.go -timeout 30m
+
+# Run contract integration tests only
+test-integration-contract:
+	@echo "Running contract integration tests..."
+	go test -v ./internal/blockchain/contract_integration_test.go -timeout 15m
+
+# Run full lifecycle integration tests only
+test-integration-lifecycle:
+	@echo "Running full lifecycle integration tests..."
+	go test -v ./test/integration/bond_lifecycle_test.go -timeout 15m
 
 # Run tests with coverage
 test-coverage:
@@ -86,17 +112,21 @@ install-tools:
 # Help
 help:
 	@echo "Available targets:"
-	@echo "  proto          - Generate protobuf code"
-	@echo "  build          - Build the service"
-	@echo "  run            - Run the service"
-	@echo "  test           - Run tests"
-	@echo "  test-coverage  - Run tests with coverage"
-	@echo "  clean          - Clean build artifacts"
-	@echo "  deps           - Install dependencies"
-	@echo "  fmt            - Format code"
-	@echo "  lint           - Lint code"
-	@echo "  docker-build   - Build Docker image"
-	@echo "  docker-run     - Run Docker container"
-	@echo "  docker-stop    - Stop Docker container"
-	@echo "  dev            - Start development mode"
-	@echo "  install-tools  - Install development tools"
+	@echo "  proto                      - Generate protobuf code"
+	@echo "  build                      - Build the service"
+	@echo "  run                        - Run the service"
+	@echo "  test                       - Run all tests (unit + integration)"
+	@echo "  test-unit                  - Run unit tests only"
+	@echo "  test-integration           - Run all integration tests"
+	@echo "  test-integration-contract  - Run contract integration tests"
+	@echo "  test-integration-lifecycle - Run full lifecycle tests"
+	@echo "  test-coverage              - Run tests with coverage"
+	@echo "  clean                      - Clean build artifacts"
+	@echo "  deps                       - Install dependencies"
+	@echo "  fmt                        - Format code"
+	@echo "  lint                       - Lint code"
+	@echo "  docker-build               - Build Docker image"
+	@echo "  docker-run                 - Run Docker container"
+	@echo "  docker-stop                - Stop Docker container"
+	@echo "  dev                        - Start development mode"
+	@echo "  install-tools              - Install development tools"

@@ -243,23 +243,20 @@ describe('PaymentService', () => {
       const mockPaymentIntent = {
         id: 'pi_123',
         status: 'succeeded',
-        charges: {
-          data: [
-            {
-              payment_method_details: {
-                card: {
-                  three_d_secure: {
-                    result: 'authenticated',
-                  },
-                },
+        latest_charge: {
+          payment_method_details: {
+            card: {
+              three_d_secure: {
+                result: 'authenticated',
               },
             },
-          ],
+          },
         },
       };
 
       mockPrismaPaymentFindFirst.mockResolvedValue(mockPayment);
       mockStripeConfirm.mockResolvedValue(mockPaymentIntent as any);
+      mockStripeRetrieve.mockResolvedValue(mockPaymentIntent as any);
       mockPrismaPaymentUpdate.mockResolvedValue({
         ...mockPayment,
         status: 'succeeded',
@@ -402,27 +399,24 @@ describe('PaymentService', () => {
 
   describe('handleWebhook', () => {
     it('should handle payment_intent.succeeded event', async () => {
+      const mockPaymentIntent = {
+        id: 'pi_123',
+        status: 'succeeded',
+        latest_charge: {
+          payment_method_details: {
+            card: {
+              three_d_secure: {
+                result: 'authenticated',
+              },
+            },
+          },
+        },
+      };
       const mockEvent = {
         id: 'evt_123',
         type: 'payment_intent.succeeded',
         data: {
-          object: {
-            id: 'pi_123',
-            status: 'succeeded',
-            charges: {
-              data: [
-                {
-                  payment_method_details: {
-                    card: {
-                      three_d_secure: {
-                        result: 'authenticated',
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          },
+          object: mockPaymentIntent,
         },
       };
       const mockWebhookEvent = {
@@ -436,6 +430,7 @@ describe('PaymentService', () => {
 
       mockPrismaWebhookCreate.mockResolvedValue(mockWebhookEvent);
       mockPrismaPaymentFindFirst.mockResolvedValue(mockPayment);
+      mockStripeRetrieve.mockResolvedValue(mockPaymentIntent as any);
       mockPrismaPaymentUpdate.mockResolvedValue({
         ...mockPayment,
         status: 'succeeded',

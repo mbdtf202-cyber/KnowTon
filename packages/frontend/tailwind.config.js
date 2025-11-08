@@ -33,6 +33,9 @@ export default {
         'neon-purple': '0 0 20px rgba(191, 0, 255, 0.5)',
         'neon-pink': '0 0 20px rgba(255, 0, 255, 0.5)',
       },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
     },
   },
   plugins: [],

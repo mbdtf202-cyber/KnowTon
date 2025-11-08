@@ -6,6 +6,7 @@ import simpleRoutes from './routes/simple.routes';
 import tradingRoutes from './routes/trading';
 import bondsRoutes from './routes/bonds';
 import paymentRoutes from './routes/payment.routes';
+import payoutRoutes from './routes/payout.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 
@@ -23,6 +24,7 @@ app.use(cors({
 
 // Special handling for Stripe webhooks (needs raw body)
 app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v1/payouts/webhook/connect', express.raw({ type: 'application/json' }));
 
 // Regular JSON parsing for other routes
 app.use(express.json({ limit: '50mb' }));
@@ -33,6 +35,7 @@ app.use('/api/v1', simpleRoutes);
 app.use('/api/trading', tradingRoutes);
 app.use('/api/bonds', bondsRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/payouts', payoutRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

@@ -1,0 +1,212 @@
+---
+# Tenant Health Check CronJob
+# Runs every 5 minutes to check health of all tenants
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tenant-health-check
+  namespace: knowton-dev
+  labels:
+    app: tenant-monitoring
+    component: health-check
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: tenant-monitoring
+            component: health-check
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: health-check
+            image: knowton/backend:latest
+            imagePullPolicy: IfNotPresent
+            command:
+            - npm
+            - run
+            - monitor:check-all
+            env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: knowton-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowton-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_DB
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+
+---
+# Daily Report CronJob
+# Runs at midnight UTC to generate daily monitoring reports
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tenant-daily-report
+  namespace: knowton-dev
+  labels:
+    app: tenant-monitoring
+    component: daily-report
+spec:
+  schedule: "0 0 * * *"  # Daily at midnight UTC
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: tenant-monitoring
+            component: daily-report
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: daily-report
+            image: knowton/backend:latest
+            imagePullPolicy: IfNotPresent
+            command:
+            - npm
+            - run
+            - monitor:daily-report
+            env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: knowton-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowton-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_DB
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+
+---
+# Log Cleanup CronJob
+# Runs weekly on Sunday at 2 AM UTC to cleanup old logs
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tenant-log-cleanup
+  namespace: knowton-dev
+  labels:
+    app: tenant-monitoring
+    component: log-cleanup
+spec:
+  schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM UTC
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 2
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: tenant-monitoring
+            component: log-cleanup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: log-cleanup
+            image: knowton/backend:latest
+            imagePullPolicy: IfNotPresent
+            command:
+            - npm
+            - run
+            - monitor:cleanup
+            env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: knowton-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowton-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: knowton-config
+                  key: POSTGRES_DB
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
