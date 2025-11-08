@@ -30,7 +30,7 @@
     "recharts": "^2.15.4",
     "tus-js-client": "^4.2.3",
     "viem": "^2.38.5",
-    "wagmi": "^2.19.0",
+    "wagmi": "^2.19.2",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
