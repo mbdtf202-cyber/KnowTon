@@ -55,7 +55,7 @@ jobs:
             > audit-reports/slither-report.txt 2>&1 || true
       
       - name: Upload Slither report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: slither-report
           path: packages/contracts/audit-reports/slither-report.*
@@ -116,7 +116,7 @@ jobs:
           done
       
       - name: Upload Mythril reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: mythril-reports
           path: packages/contracts/audit-reports/mythril-*.txt
@@ -145,7 +145,7 @@ jobs:
             > audit-reports/solhint-report.txt 2>&1 || true
       
       - name: Upload Solhint report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: solhint-report
           path: packages/contracts/audit-reports/solhint-report.txt
@@ -177,7 +177,7 @@ jobs:
           npm run test:gas > audit-reports/gas-report.txt 2>&1 || true
       
       - name: Upload gas report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: gas-report
           path: packages/contracts/audit-reports/gas-report.txt
@@ -207,7 +207,7 @@ jobs:
           npm run size > audit-reports/contract-sizes.txt 2>&1 || true
       
       - name: Upload size report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: contract-sizes
           path: packages/contracts/audit-reports/contract-sizes.txt
@@ -260,7 +260,7 @@ jobs:
           cat audit-summary.md
       
       - name: Upload summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: audit-summary
           path: audit-summary.md
